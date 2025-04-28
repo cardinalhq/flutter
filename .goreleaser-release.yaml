@@ -1,0 +1,69 @@
+version: 2
+
+before:
+  hooks:
+    - make generate
+    - go test -race ./...
+
+release:
+  disable: true
+
+# Example build section to create local artifacts (binaries).
+# If your Dockerfile already does the build (and you do NOT need local binaries),
+# you can remove this entire "builds:" section.
+builds:
+  - id: flutter
+    main: ./main.go
+    binary: flutter
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -X main.commit={{ .Commit }}
+      - -X main.version={{ .Version }}
+    flags:
+      - -trimpath
+
+# Define how to build/push Docker images.
+dockers:
+  - goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile
+    use: buildx
+    image_templates:
+      - "033263751764.dkr.ecr.us-east-2.amazonaws.com/cardinalhq/flutter:v{{ .Version }}-amd64"
+      - "033263751764.dkr.ecr.us-east-2.amazonaws.com/cardinalhq/flutter:latest-amd64"
+    build_flag_templates:
+      - --pull
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.name={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.source={{.GitURL}}
+  - goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile
+    use: buildx
+    image_templates:
+      - "033263751764.dkr.ecr.us-east-2.amazonaws.com/cardinalhq/flutter:v{{ .Version }}-arm64"
+      - "033263751764.dkr.ecr.us-east-2.amazonaws.com/cardinalhq/flutter:latest-arm64"
+    build_flag_templates:
+      - --pull
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.name={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.source={{.GitURL}}
+docker_manifests:
+  - name_template: "033263751764.dkr.ecr.us-east-2.amazonaws.com/cardinalhq/flutter:v{{ .Version }}"
+    image_templates:
+      - "033263751764.dkr.ecr.us-east-2.amazonaws.com/cardinalhq/flutter:v{{ .Version }}-amd64"
+      - "033263751764.dkr.ecr.us-east-2.amazonaws.com/cardinalhq/flutter:v{{ .Version }}-arm64"
+  - name_template: "033263751764.dkr.ecr.us-east-2.amazonaws.com/cardinalhq/flutter:latest"
+    image_templates:
+      - "033263751764.dkr.ecr.us-east-2.amazonaws.com/cardinalhq/flutter:latest-amd64"
+      - "033263751764.dkr.ecr.us-east-2.amazonaws.com/cardinalhq/flutter:latest-arm64"

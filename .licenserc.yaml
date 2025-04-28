@@ -1,0 +1,38 @@
+header:
+  license:
+    copyright-owner: CardinalHQ, Inc
+    copyright-year: "2024-2025"
+    content: |
+      This file is part of CardinalHQ, Inc.
+
+      CardinalHQ, Inc. proprietary and confidential.
+      Unauthorized copying, distribution, or modification of this file,
+      via any medium, is strictly prohibited without prior written consent.
+
+      Copyright 2024-2025 CardinalHQ, Inc. All rights reserved.
+
+  paths-ignore:
+    - 'bin'
+    - 'buildtime'
+    - '**/*.md'
+    - 'NOTICE'
+    - .gitignore
+    - .dockerignore
+    - .github
+    - .licenserc.yaml
+    - '**/*.yaml'
+    - '**/*.yml'
+    - '**/*.json'
+    - go.sum
+    - go.mod
+    - sample-config.yaml
+    - '**/testdata/**'
+    - .idea
+    - '**/*.sql.go'
+    - '**/*.sql'
+    - internal/dbase/metadatadb/batch.go
+    - internal/dbase/metadatadb/db.go
+    - internal/dbase/metadatadb/models.go
+    - internal/dbase/metadatadb/querier.go
+
+  comment: on-failure
