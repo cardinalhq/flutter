@@ -8,7 +8,17 @@
 
 package main
 
+import (
+	"log/slog"
+	"os"
+)
+
 func main() {
-	// This is a simple Go program that prints "Hello, World!" to the console.
-	println("Hello, World!")
+	// the first command line argument is the config file
+	cfg, err := ReadConfig(os.Args[1])
+	if err != nil {
+		panic(err)
+	}
+
+	slog.Info("Config loaded", slog.Any("config", cfg))
 }

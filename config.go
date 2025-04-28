@@ -8,7 +8,12 @@
 
 package main
 
-import "time"
+import (
+	"os"
+	"time"
+
+	"gopkg.in/yaml.v3"
+)
 
 type Config struct {
 	Events []Event `json:"events" yaml:"events"`
@@ -20,4 +25,18 @@ type Event struct {
 	At          time.Time      `json:"at" yaml:"at"`
 	Type        string         `json:"type" yaml:"type"`
 	Spec        map[string]any `json:"spec" yaml:"spec"`
+}
+
+func ReadConfig(file string) (*Config, error) {
+	cfg := Config{}
+	y, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	err = yaml.Unmarshal(y, &cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
 }
