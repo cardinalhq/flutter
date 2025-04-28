@@ -4,7 +4,8 @@
 # Unauthorized copying, distribution, or modification of this file,
 # via any medium, is strictly prohibited without prior written consent.
 #
-# Copyright 2024-2025 CardinalHQ, Inc. All rights reserved.
+# Copyright 2025 CardinalHQ, Inc. All rights reserved.
+
 
 FROM alpine:latest AS certs
 RUN apk --update add ca-certificates

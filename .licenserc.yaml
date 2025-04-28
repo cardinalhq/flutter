@@ -1,7 +1,7 @@
 header:
   license:
     copyright-owner: CardinalHQ, Inc
-    copyright-year: "2024-2025"
+    copyright-year: "2025"
     content: |
       This file is part of CardinalHQ, Inc.
 
@@ -9,7 +9,7 @@ header:
       Unauthorized copying, distribution, or modification of this file,
       via any medium, is strictly prohibited without prior written consent.
 
-      Copyright 2024-2025 CardinalHQ, Inc. All rights reserved.
+      Copyright 2025 CardinalHQ, Inc. All rights reserved.
 
   paths-ignore:
     - 'bin'
