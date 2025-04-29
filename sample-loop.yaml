@@ -1,0 +1,42 @@
+duration: 1h
+seed: 123456789
+#wallclockStart: 2000-01-01T00:00:00Z
+script:
+  - type: metricEmitter
+    name: baseline
+    spec:
+      type: constant
+      value: 5
+  - type: metricEmitter
+    name: random5
+    spec:
+      type: randomWalk
+      target: 0
+      stepSize: 4
+      elasticity: 0.5
+      variation: 5
+  - type: metric
+    name: pod.cpu.usage
+    spec:
+      attributes:
+        resource:
+          k8s.cluster.name: fakecluster
+          k8s.namespace.name: fakenamespace
+          k8s.pod.name: fakepod
+      type: gauge
+      frequency: 10s
+      emitters:
+        - baseline
+        - random5
+  - type: metricEmitter
+    at: 5m
+    name: baseline
+    spec:
+      type: constant
+      value: 25
+  - type: metricEmitter
+    at: 15m
+    name: baseline
+    spec:
+      type: constant
+      value: 5

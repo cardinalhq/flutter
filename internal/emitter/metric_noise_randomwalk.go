@@ -17,6 +17,7 @@ package emitter
 import (
 	"fmt"
 
+	"github.com/cardinalhq/flutter/internal/config"
 	"github.com/cardinalhq/flutter/internal/state"
 	"github.com/mitchellh/mapstructure"
 )
@@ -46,10 +47,7 @@ var _ MetricEmitter = (*MetricRandomWalk)(nil)
 
 func NewMetricRandomWalk(is map[string]any) (*MetricRandomWalk, error) {
 	spec := MetricRandomWalkSpec{}
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:      &spec,
-		ErrorUnused: true,
-	})
+	decoder, err := config.NewMapstructureDecoder(&spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create decoder: %w", err)
 	}

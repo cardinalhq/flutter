@@ -17,6 +17,7 @@ package emitter
 import (
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/cardinalhq/flutter/internal/config"
 	"github.com/cardinalhq/flutter/internal/state"
 )
 
@@ -33,10 +34,7 @@ var _ MetricEmitter = (*MetricConstant)(nil)
 
 func NewMetricConstant(is map[string]any) (*MetricConstant, error) {
 	spec := MetricConstantSpec{}
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:      &spec,
-		ErrorUnused: true,
-	})
+	decoder, err := config.NewMapstructureDecoder(&spec)
 	if err != nil {
 		return nil, err
 	}
