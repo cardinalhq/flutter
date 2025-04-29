@@ -124,7 +124,7 @@ func run(cfg *config.Config, rc *RunConfig, client *http.Client) {
 	if starttime.IsZero() {
 		starttime = time.Now()
 	}
-	for now := range rs.Duration {
+	for now := range rs.Duration + 1 {
 		rs.Now = now
 		rs.Wallclock = starttime.Add(time.Second * time.Duration(now))
 		if !cfg.Dryrun {
