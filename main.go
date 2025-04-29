@@ -40,7 +40,7 @@ type RunConfig struct {
 	Script         []config.ScriptAction
 	MetricEmitters map[string]emitter.MetricEmitter
 	Metrics        map[string]exporters.MetricExporter
-	Duration       int64
+	Duration       time.Duration
 }
 
 func main() {
@@ -124,15 +124,16 @@ func run(cfg *config.Config, rc *RunConfig, client *http.Client) {
 	if starttime.IsZero() {
 		starttime = time.Now()
 	}
-	for now := range rs.Duration + 1 {
-		rs.Now = now
-		rs.Wallclock = starttime.Add(time.Second * time.Duration(now))
-		if !cfg.Dryrun {
-			fmt.Printf("TICK! %d, %s\r", now, rs.Wallclock.Format(time.RFC3339))
-		}
+	seconds := int64(rs.Duration.Seconds())
+	for now := range seconds + 1 {
+		rs.Now = time.Duration(now) * time.Second
+		rs.Wallclock = starttime.Add(rs.Now)
+		// if !cfg.Dryrun {
+		fmt.Printf("TICK! %d, %s\r", now, rs.Wallclock.Format(time.RFC3339))
+		// }
 		//slog.Info("Running at time", slog.Int64("time", now), slog.Int("currentAction", rs.CurrentAction), slog.Int("scriptLength", len(rc.Script)))
 		if len(rc.Script) > rs.CurrentAction {
-			if rc.Script[rs.CurrentAction].At <= now {
+			if rc.Script[rs.CurrentAction].At <= rs.Now {
 				action := rc.Script[rs.CurrentAction]
 				rs.CurrentAction++
 				switch action.Type {

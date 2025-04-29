@@ -16,6 +16,7 @@ package exporters
 
 import (
 	"errors"
+	"time"
 
 	"github.com/cardinalhq/flutter/internal/config"
 	"github.com/cardinalhq/flutter/internal/emitter"
@@ -35,13 +36,13 @@ type Attributes struct {
 }
 
 type MetricExporterSpec struct {
-	Attributes Attributes `mapstructure:"attributes" yaml:"attributes" json:"attributes"`
-	Emitters   []string   `mapstructure:"emitters" yaml:"emitters" json:"emitters"`
-	Frequency  int64      `mapstructure:"frequency" yaml:"frequency" json:"frequency"`
-	Type       string     `mapstructure:"type" yaml:"type" json:"type"`
+	Attributes Attributes    `mapstructure:"attributes" yaml:"attributes" json:"attributes"`
+	Emitters   []string      `mapstructure:"emitters" yaml:"emitters" json:"emitters"`
+	Frequency  time.Duration `mapstructure:"frequency" yaml:"frequency" json:"frequency"`
+	Type       string        `mapstructure:"type" yaml:"type" json:"type"`
 
 	name        string
-	lastEmitted int64
+	lastEmitted time.Duration
 }
 
 func CreateMetricExporter(emitters map[string]emitter.MetricEmitter, name string, mes config.ScriptAction) (MetricExporter, error) {

@@ -1,4 +1,4 @@
-duration: 120
+duration: 120s
 seed: 123456789
 #wallclockStart: 2000-01-01T00:00:00Z
 script:
@@ -24,12 +24,12 @@ script:
           k8s.namespace.name: fakenamespace
           k8s.pod.name: fakepod
       type: gauge
-      frequency: 10
+      frequency: 10s
       emitters:
         - constant10
         - random5
   - type: metricEmitter
-    at: 60
+    at: 60s
     name: constant10
     spec:
       type: constant

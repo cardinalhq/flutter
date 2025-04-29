@@ -26,7 +26,7 @@ import (
 type Config struct {
 	Seed            uint64          `mapstructure:"seed" yaml:"seed" json:"seed"`
 	WallclockStart  time.Time       `mapstructure:"wallclockStart" yaml:"wallclockStart" json:"wallclockStart"`
-	Duration        int64           `mapstructure:"duration" yaml:"duration" json:"duration"`
+	Duration        time.Duration   `mapstructure:"duration" yaml:"duration" json:"duration"`
 	Script          []ScriptAction  `mapstructure:"script" yaml:"script" json:"script"`
 	Dryrun          bool            `mapstructure:"dryrun" yaml:"dryrun" json:"dryrun"`
 	OTLPDestination OTLPDestination `mapstructure:"otlpDestination" yaml:"otlpDestination" json:"otlpDestination"`
@@ -39,7 +39,7 @@ type OTLPDestination struct {
 }
 
 type ScriptAction struct {
-	At   int64          `mapstructure:"at" yaml:"at" json:"at"`
+	At   time.Duration  `mapstructure:"at" yaml:"at" json:"at"`
 	Name string         `mapstructure:"name" yaml:"name" json:"name"`
 	Type string         `mapstructure:"type" yaml:"type" json:"type"`
 	Spec map[string]any `mapstructure:"spec" yaml:"spec" json:"spec"`

@@ -20,9 +20,9 @@ import (
 )
 
 type RunState struct {
-	Now           int64
+	Now           time.Duration
 	Wallclock     time.Time
-	Duration      int64
+	Duration      time.Duration
 	RND           *rand.Rand
 	CurrentAction int
 }

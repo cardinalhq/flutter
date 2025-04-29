@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/cardinalhq/flutter/internal/config"
 	"github.com/cardinalhq/flutter/internal/emitter"
 	"github.com/cardinalhq/flutter/internal/state"
 	"github.com/cardinalhq/oteltools/signalbuilder"
@@ -48,10 +49,7 @@ func NewMetricGauge(emitters map[string]emitter.MetricEmitter, name string, spec
 		return nil, errors.New("invalid metric name: " + name)
 	}
 
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:      &gaugeSpec,
-		ErrorUnused: true,
-	})
+	decoder, err := config.NewMapstructureDecoder(&gaugeSpec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create decoder: %w", err)
 	}
@@ -115,7 +113,7 @@ func (m *MetricGauge) Emit(emitters map[string]emitter.MetricEmitter, state *sta
 	dp, _, _ := mm.Datapoint(dattr, pcommon.NewTimestampFromTime(state.Wallclock))
 	dp.SetDoubleValue(value)
 
-	slog.Info("MetricGauge Emit", slog.Int64("ts", state.Now), slog.String("metricName", m.spec.name), slog.Float64("value", value))
+	slog.Info("MetricGauge Emit", slog.Duration("ts", state.Now), slog.String("metricName", m.spec.name), slog.Float64("value", value))
 
 	return nil
 }
