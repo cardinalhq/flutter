@@ -1,38 +1,38 @@
 header:
   license:
+    spdx-id: Apache-2.0
     copyright-owner: CardinalHQ, Inc
-    copyright-year: "2025"
-    content: |
-      This file is part of CardinalHQ, Inc.
-
-      CardinalHQ, Inc. proprietary and confidential.
-      Unauthorized copying, distribution, or modification of this file,
-      via any medium, is strictly prohibited without prior written consent.
-
-      Copyright 2025 CardinalHQ, Inc. All rights reserved.
+    copyright-year: 2025
 
   paths-ignore:
+    - go.sum
+    - go.mod
     - 'bin'
-    - 'buildtime'
+    - .github
+    - '**/testdata/**'
     - '**/*.md'
+    - '**/*.yaml'
+    - .licenserc.yaml
+    - 'LICENSE'
     - 'NOTICE'
     - .gitignore
     - .dockerignore
-    - .github
-    - .licenserc.yaml
-    - '**/*.yaml'
-    - '**/*.yml'
-    - '**/*.json'
-    - go.sum
-    - go.mod
-    - sample-config.yaml
-    - '**/testdata/**'
+    - .helmignore
     - .idea
-    - '**/*.sql.go'
-    - '**/*.sql'
-    - internal/dbase/metadatadb/batch.go
-    - internal/dbase/metadatadb/db.go
-    - internal/dbase/metadatadb/models.go
-    - internal/dbase/metadatadb/querier.go
 
   comment: on-failure
+
+  language:
+    rl:
+      extensions:
+        - '.rl'
+      comment_style_id: DoubleSlash
+    dot:
+      extensions:
+        - '.dot'
+      comment_style_id: Hashtag
+
+# If you don't want to check dependencies' license compatibility, remove the following part
+dependency:
+  files:
+    - go.mod

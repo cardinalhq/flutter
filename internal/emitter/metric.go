@@ -12,19 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package emitter
 
-import (
-	"log/slog"
-	"os"
-)
+type MetricEmitter interface {
+	Emit(float64) float64
+	Reconfigure(spec map[string]any) error
+}
 
-func main() {
-	// the first command line argument is the config file
-	cfg, err := ReadConfig(os.Args[1])
-	if err != nil {
-		panic(err)
+func EmitMetrics(initial float64, emitters []MetricEmitter) float64 {
+	for _, emitter := range emitters {
+		initial = emitter.Emit(initial)
 	}
-
-	slog.Info("Config loaded", slog.Any("config", cfg))
+	return initial
 }
