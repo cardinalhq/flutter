@@ -14,14 +14,40 @@
 
 package emitter
 
+import (
+	"errors"
+
+	"github.com/cardinalhq/flutter/internal/config"
+	"github.com/cardinalhq/flutter/internal/state"
+)
+
 type MetricEmitter interface {
-	Emit(float64) float64
+	Emit(state *state.RunState, initial float64) float64
 	Reconfigure(spec map[string]any) error
 }
 
-func EmitMetrics(initial float64, emitters []MetricEmitter) float64 {
-	for _, emitter := range emitters {
-		initial = emitter.Emit(initial)
+type MetricEmitterSpec struct {
+	Type string `mapstructure:"type" yaml:"type" json:"type"`
+}
+
+func CreateMetricEmitter(mes config.ScriptAction) (MetricEmitter, error) {
+	if mes.Spec == nil {
+		return nil, errors.New("missing spec in metric emitter")
 	}
-	return initial
+	emitterTypeAny, ok := mes.Spec["type"]
+	if !ok {
+		return nil, errors.New("missing type in metric emitter spec")
+	}
+	emitterType, ok := emitterTypeAny.(string)
+	if !ok {
+		return nil, errors.New("type in metric emitter spec is not a string")
+	}
+	switch emitterType {
+	case "constant":
+		return NewMetricConstant(mes.Spec)
+	case "randomWalk":
+		return NewMetricRandomWalk(mes.Spec)
+	default:
+		return nil, errors.New("unknown metric emitter type: " + mes.Type)
+	}
 }

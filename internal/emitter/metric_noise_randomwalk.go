@@ -15,8 +15,9 @@
 package emitter
 
 import (
-	"math/rand"
+	"fmt"
 
+	"github.com/cardinalhq/flutter/internal/state"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -28,16 +29,15 @@ import (
 // then clamps into [target−variation, target+variation].
 // Emit(in) returns in + x.
 type MetricRandomWalkSpec struct {
-	Seed       int64   `mapstructure:"seed" yaml:"seed" json:"seed"`
-	Target     float64 `mapstructure:"target" yaml:"target" json:"target"`
-	Elasticity float64 `mapstructure:"elasticity" yaml:"elasticity" json:"elasticity"`
-	StepSize   float64 `mapstructure:"step_size" yaml:"step_size" json:"step_size"`
-	Variation  float64 `mapstructure:"variation" yaml:"variation" json:"variation"`
+	MetricEmitterSpec `mapstructure:",squash"`
+	Target            float64 `mapstructure:"target" yaml:"target" json:"target"`
+	Elasticity        float64 `mapstructure:"elasticity" yaml:"elasticity" json:"elasticity"`
+	StepSize          float64 `mapstructure:"stepSize" yaml:"stepSize" json:"stepSize"`
+	Variation         float64 `mapstructure:"variation" yaml:"variation" json:"variation"`
 }
 
 type MetricRandomWalk struct {
 	spec     MetricRandomWalkSpec
-	rng      *rand.Rand // seeded source
 	current  float64
 	min, max float64
 }
@@ -45,14 +45,22 @@ type MetricRandomWalk struct {
 var _ MetricEmitter = (*MetricRandomWalk)(nil)
 
 func NewMetricRandomWalk(is map[string]any) (*MetricRandomWalk, error) {
-	spec := MetricRandomWalkSpec{
-		Seed:       0,
-		Target:     0,
-		Elasticity: 0,
-		StepSize:   0,
+	spec := MetricRandomWalkSpec{}
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Result:      &spec,
+		ErrorUnused: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create decoder: %w", err)
 	}
-	if err := mapstructure.Decode(is, &spec); err != nil {
+	if err := decoder.Decode(is); err != nil {
 		return nil, err
+	}
+	if spec.Variation <= 0 {
+		return nil, fmt.Errorf("invalid variation: %f", spec.Variation)
+	}
+	if spec.StepSize <= 0 {
+		return nil, fmt.Errorf("invalid stepSize: %f", spec.StepSize)
 	}
 	state := MetricRandomWalk{
 		spec:    spec,
@@ -60,13 +68,25 @@ func NewMetricRandomWalk(is map[string]any) (*MetricRandomWalk, error) {
 		min:     spec.Target - spec.Variation,
 		max:     spec.Target + spec.Variation,
 	}
-	state.rng = rand.New(rand.NewSource(spec.Seed))
 	return &state, nil
 }
 
 func (m *MetricRandomWalk) Reconfigure(is map[string]any) error {
-	if err := mapstructure.Decode(is, &m.spec); err != nil {
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Result:      &m.spec,
+		ErrorUnused: true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create decoder: %w", err)
+	}
+	if err := decoder.Decode(is); err != nil {
 		return err
+	}
+	if m.spec.Variation <= 0 {
+		return fmt.Errorf("invalid variation: %f", m.spec.Variation)
+	}
+	if m.spec.StepSize <= 0 {
+		return fmt.Errorf("invalid stepSize: %f", m.spec.StepSize)
 	}
 
 	m.current = m.spec.Target
@@ -83,9 +103,9 @@ func (m *MetricRandomWalk) Reconfigure(is map[string]any) error {
 }
 
 // Emit advances the mean-reverting walk, clamps it, then adds to incoming.
-func (m *MetricRandomWalk) Emit(incoming float64) float64 {
+func (m *MetricRandomWalk) Emit(state *state.RunState, incoming float64) float64 {
 	// uniform noise in [−stepSize, +stepSize]
-	noise := (m.rng.Float64()*2 - 1) * m.spec.StepSize
+	noise := (state.RND.Float64()*2 - 1) * m.spec.StepSize
 
 	// mean reversion toward target
 	pull := m.spec.Elasticity * (m.spec.Target - m.current)

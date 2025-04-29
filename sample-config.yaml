@@ -1,0 +1,30 @@
+duration: 100
+seed: 123456789
+#wallclockStart: 2000-01-01T00:00:00Z
+script:
+  - type: metricEmitter
+    name: constant10
+    spec:
+      type: constant
+      value: 10
+  - type: metricEmitter
+    name: random5
+    spec:
+      type: randomWalk
+      target: 0
+      stepSize: 4
+      elasticity: 0.5
+      variation: 10
+  - type: metric
+    name: cpu.cores
+    spec:
+      attributes:
+        resource:
+          k8s.cluster.name: fakecluster
+          k8s.namespace.name: fakenamespace
+          k8s.pod.name: fakepod
+      type: gauge
+      frequency: 10
+      emitters:
+        - constant10
+        - random5

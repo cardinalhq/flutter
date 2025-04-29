@@ -14,10 +14,15 @@
 
 package emitter
 
-import "github.com/mitchellh/mapstructure"
+import (
+	"github.com/mitchellh/mapstructure"
+
+	"github.com/cardinalhq/flutter/internal/state"
+)
 
 type MetricConstantSpec struct {
-	Value float64 `mapstructure:"value" yaml:"value" json:"value"`
+	MetricEmitterSpec `mapstructure:",squash"`
+	Value             float64 `mapstructure:"value" yaml:"value" json:"value"`
 }
 
 type MetricConstant struct {
@@ -27,10 +32,15 @@ type MetricConstant struct {
 var _ MetricEmitter = (*MetricConstant)(nil)
 
 func NewMetricConstant(is map[string]any) (*MetricConstant, error) {
-	spec := MetricConstantSpec{
-		Value: 0,
+	spec := MetricConstantSpec{}
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Result:      &spec,
+		ErrorUnused: true,
+	})
+	if err != nil {
+		return nil, err
 	}
-	if err := mapstructure.Decode(is, &spec); err != nil {
+	if err := decoder.Decode(is); err != nil {
 		return nil, err
 	}
 	return &MetricConstant{
@@ -39,9 +49,16 @@ func NewMetricConstant(is map[string]any) (*MetricConstant, error) {
 }
 
 func (m *MetricConstant) Reconfigure(is map[string]any) error {
-	return mapstructure.Decode(is, &m.spec)
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Result:      &m.spec,
+		ErrorUnused: true,
+	})
+	if err != nil {
+		return err
+	}
+	return decoder.Decode(is)
 }
 
-func (m *MetricConstant) Emit(incoming float64) float64 {
+func (m *MetricConstant) Emit(_ *state.RunState, incoming float64) float64 {
 	return incoming + m.spec.Value
 }
