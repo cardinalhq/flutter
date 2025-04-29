@@ -1,4 +1,4 @@
-duration: 100
+duration: 120
 seed: 123456789
 #wallclockStart: 2000-01-01T00:00:00Z
 script:
@@ -16,7 +16,7 @@ script:
       elasticity: 0.5
       variation: 10
   - type: metric
-    name: cpu.cores
+    name: pod.cpu.usage
     spec:
       attributes:
         resource:
@@ -28,3 +28,9 @@ script:
       emitters:
         - constant10
         - random5
+  - type: metricEmitter
+    at: 60
+    name: constant10
+    spec:
+      type: constant
+      value: 60
