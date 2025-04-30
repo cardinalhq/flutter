@@ -16,6 +16,7 @@ package emitter
 
 import (
 	"errors"
+	"time"
 
 	"github.com/cardinalhq/flutter/internal/config"
 	"github.com/cardinalhq/flutter/internal/state"
@@ -23,7 +24,7 @@ import (
 
 type MetricEmitter interface {
 	Emit(state *state.RunState, initial float64) float64
-	Reconfigure(spec map[string]any) error
+	Reconfigure(at time.Duration, spec map[string]any) error
 }
 
 type MetricEmitterSpec struct {
@@ -44,9 +45,11 @@ func CreateMetricEmitter(mes config.ScriptAction) (MetricEmitter, error) {
 	}
 	switch emitterType {
 	case "constant":
-		return NewMetricConstant(mes.Spec)
+		return NewMetricConstant(mes.At, mes.Spec)
 	case "randomWalk":
-		return NewMetricRandomWalk(mes.Spec)
+		return NewMetricRandomWalk(mes.At, mes.Spec)
+	case "ramp":
+		return NewMetricRamp(mes.At, mes.Spec)
 	default:
 		return nil, errors.New("unknown metric emitter type: " + mes.Type)
 	}

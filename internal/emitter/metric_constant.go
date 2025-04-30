@@ -15,6 +15,8 @@
 package emitter
 
 import (
+	"time"
+
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/cardinalhq/flutter/internal/config"
@@ -32,7 +34,7 @@ type MetricConstant struct {
 
 var _ MetricEmitter = (*MetricConstant)(nil)
 
-func NewMetricConstant(is map[string]any) (*MetricConstant, error) {
+func NewMetricConstant(_ time.Duration, is map[string]any) (*MetricConstant, error) {
 	spec := MetricConstantSpec{}
 	decoder, err := config.NewMapstructureDecoder(&spec)
 	if err != nil {
@@ -46,7 +48,7 @@ func NewMetricConstant(is map[string]any) (*MetricConstant, error) {
 	}, nil
 }
 
-func (m *MetricConstant) Reconfigure(is map[string]any) error {
+func (m *MetricConstant) Reconfigure(_ time.Duration, is map[string]any) error {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Result:      &m.spec,
 		ErrorUnused: true,

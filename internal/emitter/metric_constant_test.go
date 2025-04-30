@@ -26,7 +26,7 @@ func TestNewMetricConstant(t *testing.T) {
 			"value": 10.5,
 		}
 
-		metricConstant, err := NewMetricConstant(input)
+		metricConstant, err := NewMetricConstant(0, input)
 		assert.NoError(t, err)
 		assert.NotNil(t, metricConstant)
 		assert.Equal(t, 10.5, metricConstant.spec.Value)
@@ -35,7 +35,7 @@ func TestNewMetricConstant(t *testing.T) {
 	t.Run("missing value", func(t *testing.T) {
 		input := map[string]any{}
 
-		metricConstant, err := NewMetricConstant(input)
+		metricConstant, err := NewMetricConstant(0, input)
 		assert.NoError(t, err)
 		assert.NotNil(t, metricConstant)
 		assert.Equal(t, 0.0, metricConstant.spec.Value) // Default value
@@ -46,7 +46,7 @@ func TestNewMetricConstant(t *testing.T) {
 			"value": "invalid",
 		}
 
-		metricConstant, err := NewMetricConstant(input)
+		metricConstant, err := NewMetricConstant(0, input)
 		assert.Error(t, err)
 		assert.Nil(t, metricConstant)
 	})
@@ -57,7 +57,7 @@ func TestMetricConstant_Reconfigure(t *testing.T) {
 		initialInput := map[string]any{
 			"value": 5.0,
 		}
-		metricConstant, err := NewMetricConstant(initialInput)
+		metricConstant, err := NewMetricConstant(0, initialInput)
 		assert.NoError(t, err)
 		assert.NotNil(t, metricConstant)
 		assert.Equal(t, 5.0, metricConstant.spec.Value)
@@ -65,7 +65,7 @@ func TestMetricConstant_Reconfigure(t *testing.T) {
 		reconfigureInput := map[string]any{
 			"value": 15.0,
 		}
-		err = metricConstant.Reconfigure(reconfigureInput)
+		err = metricConstant.Reconfigure(0, reconfigureInput)
 		assert.NoError(t, err)
 		assert.Equal(t, 15.0, metricConstant.spec.Value)
 	})
@@ -74,13 +74,13 @@ func TestMetricConstant_Reconfigure(t *testing.T) {
 		initialInput := map[string]any{
 			"value": 5.0,
 		}
-		metricConstant, err := NewMetricConstant(initialInput)
+		metricConstant, err := NewMetricConstant(0, initialInput)
 		assert.NoError(t, err)
 		assert.NotNil(t, metricConstant)
 		assert.Equal(t, 5.0, metricConstant.spec.Value)
 
 		reconfigureInput := map[string]any{}
-		err = metricConstant.Reconfigure(reconfigureInput)
+		err = metricConstant.Reconfigure(0, reconfigureInput)
 		assert.NoError(t, err)
 		assert.Equal(t, 5.0, metricConstant.spec.Value) // Default value
 	})
@@ -89,7 +89,7 @@ func TestMetricConstant_Reconfigure(t *testing.T) {
 		initialInput := map[string]any{
 			"value": 5.0,
 		}
-		metricConstant, err := NewMetricConstant(initialInput)
+		metricConstant, err := NewMetricConstant(0, initialInput)
 		assert.NoError(t, err)
 		assert.NotNil(t, metricConstant)
 		assert.Equal(t, 5.0, metricConstant.spec.Value)
@@ -97,7 +97,7 @@ func TestMetricConstant_Reconfigure(t *testing.T) {
 		reconfigureInput := map[string]any{
 			"value": "invalid",
 		}
-		err = metricConstant.Reconfigure(reconfigureInput)
+		err = metricConstant.Reconfigure(0, reconfigureInput)
 		assert.Error(t, err)
 		assert.Equal(t, 5.0, metricConstant.spec.Value) // Value should remain unchanged
 	})
@@ -108,7 +108,7 @@ func TestMetricConstant_Emit(t *testing.T) {
 		input := map[string]any{
 			"value": 10.5,
 		}
-		metricConstant, err := NewMetricConstant(input)
+		metricConstant, err := NewMetricConstant(0, input)
 		assert.NoError(t, err)
 		assert.NotNil(t, metricConstant)
 
@@ -120,7 +120,7 @@ func TestMetricConstant_Emit(t *testing.T) {
 		input := map[string]any{
 			"value": 0.0,
 		}
-		metricConstant, err := NewMetricConstant(input)
+		metricConstant, err := NewMetricConstant(0, input)
 		assert.NoError(t, err)
 		assert.NotNil(t, metricConstant)
 
@@ -132,7 +132,7 @@ func TestMetricConstant_Emit(t *testing.T) {
 		input := map[string]any{
 			"value": -3.5,
 		}
-		metricConstant, err := NewMetricConstant(input)
+		metricConstant, err := NewMetricConstant(0, input)
 		assert.NoError(t, err)
 		assert.NotNil(t, metricConstant)
 

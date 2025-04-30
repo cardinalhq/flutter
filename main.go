@@ -142,7 +142,7 @@ func run(cfg *config.Config, rc *RunConfig, client *http.Client) {
 					if !ok {
 						panic("Metric emitter not found: " + action.Name)
 					}
-					err := metricEmitter.Reconfigure(action.Spec)
+					err := metricEmitter.Reconfigure(action.At, action.Spec)
 					if err != nil {
 						panic("Error reconfiguring metric emitter: " + err.Error())
 					}

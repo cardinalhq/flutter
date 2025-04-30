@@ -16,6 +16,7 @@ package emitter
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cardinalhq/flutter/internal/config"
 	"github.com/cardinalhq/flutter/internal/state"
@@ -45,7 +46,7 @@ type MetricRandomWalk struct {
 
 var _ MetricEmitter = (*MetricRandomWalk)(nil)
 
-func NewMetricRandomWalk(is map[string]any) (*MetricRandomWalk, error) {
+func NewMetricRandomWalk(_ time.Duration, is map[string]any) (*MetricRandomWalk, error) {
 	spec := MetricRandomWalkSpec{}
 	decoder, err := config.NewMapstructureDecoder(&spec)
 	if err != nil {
@@ -69,7 +70,7 @@ func NewMetricRandomWalk(is map[string]any) (*MetricRandomWalk, error) {
 	return &state, nil
 }
 
-func (m *MetricRandomWalk) Reconfigure(is map[string]any) error {
+func (m *MetricRandomWalk) Reconfigure(_ time.Duration, is map[string]any) error {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Result:      &m.spec,
 		ErrorUnused: true,
@@ -100,18 +101,11 @@ func (m *MetricRandomWalk) Reconfigure(is map[string]any) error {
 	return nil
 }
 
-// Emit advances the mean-reverting walk, clamps it, then adds to incoming.
 func (m *MetricRandomWalk) Emit(state *state.RunState, incoming float64) float64 {
-	// uniform noise in [−stepSize, +stepSize]
 	noise := (state.RND.Float64()*2 - 1) * m.spec.StepSize
-
-	// mean reversion toward target
 	pull := m.spec.Elasticity * (m.spec.Target - m.current)
-
-	// step
 	m.current += pull + noise
 
-	// clamp within [min, max]
 	if m.current < m.min {
 		m.current = m.min
 	} else if m.current > m.max {
