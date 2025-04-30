@@ -12,24 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package state
+package main
 
-import (
-	"math/rand/v2"
-	"time"
-)
+import "github.com/cardinalhq/flutter/commands"
 
-type RunState struct {
-	Now           time.Duration
-	Wallclock     time.Time
-	Duration      time.Duration
-	RND           *rand.Rand
-	CurrentAction int
-}
-
-func MakeRNG(seed uint64) *rand.Rand {
-	if seed == 0 {
-		seed = uint64(time.Now().UnixNano())
-	}
-	return rand.New(rand.NewPCG(seed, seed))
+func main() {
+	_ = commands.Execute()
 }

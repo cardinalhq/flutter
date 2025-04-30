@@ -204,3 +204,7 @@ Fields:
 * `endpoint` defines the base endpoint, usually without a path, such as `https://example.com:1234`
 * `headers` defines a `map[string]string` of headers to send with each HTTP request.
 * `timeout` sets the maximum wait time for the post to complete.  Defaults to `5s`.
+
+## Future Work
+
+* Add a way to more carefully tune the sampler pipeline, with clamping, simple math, etc.  This would probably be inside the

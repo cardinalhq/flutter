@@ -13,7 +13,7 @@ release:
 # you can remove this entire "builds:" section.
 builds:
   - id: flutter
-    main: ./main.go
+    main: ./cmd/flutter/main.go
     binary: flutter
     goos:
       - linux

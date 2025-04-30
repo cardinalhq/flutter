@@ -10,7 +10,7 @@ release:
 
 builds:
   - id: flutter
-    main: ./main.go
+    main: ./cmd/flutter/main.go
     binary: flutter
     goos:
       - linux

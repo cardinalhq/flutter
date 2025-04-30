@@ -12,24 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package state
+package commands
 
-import (
-	"math/rand/v2"
-	"time"
-)
+import "github.com/spf13/cobra"
 
-type RunState struct {
-	Now           time.Duration
-	Wallclock     time.Time
-	Duration      time.Duration
-	RND           *rand.Rand
-	CurrentAction int
+var root = &cobra.Command{
+	Use:     "flutter",
+	Short:   "Flutter is a load testing tool for OpenTelemetry",
+	Long:    `Flutter is a load testing tool for OpenTelemetry. It allows you to simulate metric telemetry`,
+	Version: version,
 }
 
-func MakeRNG(seed uint64) *rand.Rand {
-	if seed == 0 {
-		seed = uint64(time.Now().UnixNano())
-	}
-	return rand.New(rand.NewPCG(seed, seed))
+func Execute() error {
+	root.AddCommand(SimulateCmd)
+
+	return root.Execute()
 }

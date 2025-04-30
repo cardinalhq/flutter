@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package commands
 
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"math/rand/v2"
 	"net/http"
-	"os"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/cardinalhq/oteltools/signalbuilder"
+	"github.com/spf13/cobra"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/pmetric/pmetricotlp"
 
@@ -43,27 +43,35 @@ type RunConfig struct {
 	Duration       time.Duration
 }
 
-func main() {
-	if len(os.Args) < 2 {
-		panic("Usage: flutter <config_file>")
-	}
+var SimulateCmd = &cobra.Command{
+	Use:   "simulate",
+	Short: "Simulate a load test",
+	Long:  `Simulate a load test using the provided configuration files.`,
+	RunE: func(_ *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return errors.New("no config files provided")
+		}
+		return Simulate(args)
+	},
+}
 
+func Simulate(args []string) error {
 	// load the config files in order, merging as we go
-	cfg, err := config.LoadConfigs(os.Args[1:])
+	cfg, err := config.LoadConfigs(args)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("error loading config files: %w", err)
 	}
 
 	runConfig, err := makeRunningConfig(cfg)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("error creating running config: %w", err)
 	}
 
 	httpClient := &http.Client{
 		Timeout: cfg.OTLPDestination.Timeout,
 	}
 
-	run(cfg, runConfig, httpClient)
+	return run(cfg, runConfig, httpClient)
 }
 
 func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
@@ -74,7 +82,7 @@ func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
 	}
 
 	if len(cfg.Script) == 0 {
-		panic("No script actions found in config")
+		return nil, errors.New("no script actions found in config")
 	}
 	slices.SortFunc(rc.Script, func(a, b config.ScriptAction) int {
 		if v := int(a.At - b.At); v != 0 {
@@ -89,7 +97,7 @@ func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
 		cfg.Duration = rc.Script[len(rc.Script)-1].At
 	}
 	if cfg.Duration < rc.Script[len(rc.Script)-1].At {
-		panic("Duration must be greater than or equal to the last script action time, or 0 for automatic")
+		return nil, errors.New("Duration must be greater than or equal to the last script action time, or set to 0")
 	}
 	rc.Duration = cfg.Duration
 
@@ -99,7 +107,7 @@ func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
 		case "metricEmitter":
 			metricEmitter, err := emitter.CreateMetricEmitter(action)
 			if err != nil {
-				panic("Error creating metric emitter: " + err.Error())
+				return nil, errors.New("Error creating metric emitter: " + err.Error())
 			}
 			rc.MetricEmitters[action.Name] = metricEmitter
 		default:
@@ -110,14 +118,14 @@ func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
 	return &rc, nil
 }
 
-func run(cfg *config.Config, rc *RunConfig, client *http.Client) {
+func run(cfg *config.Config, rc *RunConfig, client *http.Client) error {
 	seed := cfg.Seed
 	if seed == 0 {
 		seed = uint64(time.Now().UnixNano())
 	}
 	rs := &state.RunState{
 		Duration: rc.Duration,
-		RND:      rand.New(rand.NewPCG(seed, seed)),
+		RND:      state.MakeRNG(seed),
 	}
 
 	starttime := cfg.WallclockStart
@@ -128,9 +136,9 @@ func run(cfg *config.Config, rc *RunConfig, client *http.Client) {
 	for now := range seconds + 1 {
 		rs.Now = time.Duration(now) * time.Second
 		rs.Wallclock = starttime.Add(rs.Now)
-		// if !cfg.Dryrun {
-		fmt.Printf("TICK! %d, %s\r", now, rs.Wallclock.Format(time.RFC3339))
-		// }
+		if !cfg.Dryrun {
+			fmt.Printf("TICK! %d, %s\r", now, rs.Wallclock.Format(time.RFC3339))
+		}
 		//slog.Info("Running at time", slog.Int64("time", now), slog.Int("currentAction", rs.CurrentAction), slog.Int("scriptLength", len(rc.Script)))
 		if len(rc.Script) > rs.CurrentAction {
 			if rc.Script[rs.CurrentAction].At <= rs.Now {
@@ -140,20 +148,20 @@ func run(cfg *config.Config, rc *RunConfig, client *http.Client) {
 				case "metricEmitter":
 					metricEmitter, ok := rc.MetricEmitters[action.Name]
 					if !ok {
-						panic("Metric emitter not found: " + action.Name)
+						return fmt.Errorf("metric emitter not found: %s", action.Name)
 					}
 					err := metricEmitter.Reconfigure(action.At, action.Spec)
 					if err != nil {
-						panic("Error reconfiguring metric emitter: " + err.Error())
+						return fmt.Errorf("error reconfiguring metric emitter: %s", action.Name)
 					}
 				case "metric":
 					_, ok := rc.Metrics[action.Name]
 					if ok {
-						panic("Metric already exists: " + action.Name)
+						return fmt.Errorf("metric already exists: %s", action.Name)
 					}
 					metric, err := exporters.CreateMetricExporter(rc.MetricEmitters, action.Name, action)
 					if err != nil {
-						panic("Error creating metric exporter: " + err.Error())
+						return fmt.Errorf("error creating metric exporter: %s", action.Name)
 					}
 					rc.Metrics[action.Name] = metric
 				}
@@ -168,14 +176,14 @@ func run(cfg *config.Config, rc *RunConfig, client *http.Client) {
 		for _, name := range metricNames {
 			err := rc.Metrics[name].Emit(rc.MetricEmitters, rs, mb)
 			if err != nil {
-				panic("Error emitting metric: " + err.Error())
+				return fmt.Errorf("error emitting metric: %s", name)
 			}
 		}
 		mm := mb.Build()
 
 		if !cfg.Dryrun && cfg.OTLPDestination.Endpoint != "" {
 			if err := sendOTLPMetric(context.Background(), client, cfg.OTLPDestination.Headers, mm, cfg.OTLPDestination.Endpoint); err != nil {
-				panic("Error sending OTLP metric: " + err.Error())
+				return fmt.Errorf("error sending OTLP metric: %w", err)
 			}
 		}
 
@@ -183,6 +191,8 @@ func run(cfg *config.Config, rc *RunConfig, client *http.Client) {
 			time.Sleep(1 * time.Second)
 		}
 	}
+
+	return nil
 }
 
 func sendOTLPMetric(ctx context.Context, client *http.Client, headers map[string]string, md pmetric.Metrics, endpoint string) error {

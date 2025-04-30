@@ -34,7 +34,7 @@ IMAGE_TARGETS = flutter
 # Below here lies magic...x
 #
 
-all_deps := $(shell find main.go cmd internal -name '*.go' | grep -v _test) Makefile
+all_deps := $(shell find cmd commands internal -name '*.go' | grep -v _test) Makefile
 
 #
 # Default target.
@@ -68,7 +68,7 @@ local: $(addprefix bin/,$(BINARIES))
 
 bin/flutter: ${all_deps}
 	@[ -d bin ] || mkdir bin
-	go build -o $@
+	go build -o $@ cmd/flutter/main.go
 
 #
 # Multi-architecture image builds
