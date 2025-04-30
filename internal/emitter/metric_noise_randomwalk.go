@@ -55,9 +55,6 @@ func NewMetricRandomWalk(_ time.Duration, is map[string]any) (*MetricRandomWalk,
 	if err := decoder.Decode(is); err != nil {
 		return nil, err
 	}
-	if spec.Variation <= 0 {
-		return nil, fmt.Errorf("invalid variation: %f", spec.Variation)
-	}
 	if spec.StepSize <= 0 {
 		return nil, fmt.Errorf("invalid stepSize: %f", spec.StepSize)
 	}
@@ -80,9 +77,6 @@ func (m *MetricRandomWalk) Reconfigure(_ time.Duration, is map[string]any) error
 	}
 	if err := decoder.Decode(is); err != nil {
 		return err
-	}
-	if m.spec.Variation <= 0 {
-		return fmt.Errorf("invalid variation: %f", m.spec.Variation)
 	}
 	if m.spec.StepSize <= 0 {
 		return fmt.Errorf("invalid stepSize: %f", m.spec.StepSize)

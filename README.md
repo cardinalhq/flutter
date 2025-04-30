@@ -170,6 +170,8 @@ Random Walk emits a mean-reverting noise term. For each sample `x`, the internal
 
 It is then clamped into `[target−variation, target+variation]`.
 
+If a constant is desired, variation can be set to 0, which will clamp to the target.  Random samples are still generated, but the output will be constant.
+
 ```yaml
 spec:
   target: 0

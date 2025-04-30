@@ -1,0 +1,81 @@
+duration: 30m
+seed: 1746030689
+script:
+  - type: metricEmitter
+    name: cpuRamp
+    spec:
+      type: ramp
+      target: 0.25
+      duration: 10s
+  - type: metricEmitter
+    name: cpuRandom
+    spec:
+      type: randomWalk
+      target: 0
+      stepSize: 0.01
+      elasticity: 0.1
+      variation: 0.08
+  - type: metric
+    name: rds.cpu
+    spec:
+      attributes:
+        resource:
+          k8s.namespace.name: fakenamespace
+          k8s.pod.name: fakepod
+      type: gauge
+      frequency: 10s
+      emitters:
+        - cpuRamp
+        - cpuRandom
+  - type: metricEmitter
+    name: deadlockRamp
+    spec:
+      type: ramp
+      target: 0.0
+      duration: 10s
+  - type: metricEmitter
+    name: deadlockRandom
+    spec:
+      type: randomWalk
+      target: 0
+      stepSize: 0.01
+      elasticity: 0.1
+      variation: 0
+  - type: metric
+    name: rds.deadlock
+    spec:
+      attributes:
+        resource:
+          k8s.namespace.name: fakenamespace
+          k8s.pod.name: fakepod
+      type: gauge
+      frequency: 10s
+      emitters:
+        - deadlockRamp
+        - deadlockRandom
+  - type: metricEmitter
+    name: latencyRamp
+    spec:
+      type: ramp
+      target: 0.25
+      duration: 10s
+  - type: metricEmitter
+    name: latencyRandom
+    spec:
+      type: randomWalk
+      target: 0
+      stepSize: 0.01
+      elasticity: 0.1
+      variation: 0.08
+  - type: metric
+    name: rds.latency
+    spec:
+      attributes:
+        resource:
+          k8s.namespace.name: fakenamespace
+          k8s.pod.name: fakepod
+      type: gauge
+      frequency: 10s
+      emitters:
+        - latencyRamp
+        - latencyRandom
