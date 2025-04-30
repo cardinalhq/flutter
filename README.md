@@ -190,6 +190,43 @@ spec:
   variation: 10
 ```
 
+#### GaussianNoise
+
+MetricGaussianNoise emits independent normal noise centered on Target.
+On each Emit(), it samples:
+
+```x ~ Normal(Target, StdDev²)```
+
+It is then clampd into `[Target-Variation, Target+Variation]`.
+
+```yaml
+spec:
+  type: gaussianNoise
+  target: 0
+  variation: 8
+  stdDev: 2.66
+  direction: both
+```
+
+* `target` is the mean for two-sided, or the lower or upper bounds for positive and negative sided.
+* `variation` is the maximum range used for scaling and clamping.
+* `stdDev` sets the standard deviation.  If left unspecified, it is set to `variaion/3`.
+* `direction` specifies if we should have positive and negative, or just postitive or just negative random values.
+
+#### Spiky Noise
+
+`spikyNoise` configures a mostly‐zero generator that randomly spikes with Poisson‐distributed counts when “ON”.
+
+![spiky-example](./public/images/spiky.png)
+
+```yaml
+spec:
+  pStart: 0.05
+  pEnd: 0.2
+  peakTarget: 15
+  variation: 5
+```
+
 ### Exporters
 
 #### Metric

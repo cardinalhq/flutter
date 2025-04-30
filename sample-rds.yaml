@@ -13,7 +13,6 @@ script:
     spec:
       type: gaussianNoise
       target: 0
-      stdDev: 2.6
       variation: 8
   - type: metric
     name: CPUUtilization.max
