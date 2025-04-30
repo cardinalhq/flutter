@@ -5,11 +5,11 @@
 Flutter takes a script in YAML and generates metrics and other
 telemetry to simulate various test scenarios.
 
-A metric emitter is defined that has a start time and various
+A metric generator is defined that has a start time and various
 configuration options (aka "spec") and metrics can refer to
-these emitters to form telemetry.  Emitters can be altered
+these generators to form telemetry.  Generators can be altered
 at different points in time.  Metrics can use one or more
-emitter to form the datapoint values.
+generator to form the datapoint values.
 
 ## Installation
 
@@ -58,12 +58,12 @@ duration: 120s
 seed: 123456789
 #wallclockStart: 2000-01-01T00:00:00Z
 script:
-  - type: metricEmitter
+  - type: metricGenerator
     name: constant10
     spec:
       type: constant
       value: 10
-  - type: metricEmitter
+  - type: metricGenerator
     name: random5
     spec:
       type: randomWalk
@@ -81,10 +81,10 @@ script:
           k8s.pod.name: fakepod
       type: gauge
       frequency: 10s
-      emitters:
+      generators:
         - constant10
         - random5
-  - type: metricEmitter
+  - type: metricGenerator
     at: 60s
     name: constant10
     spec:
@@ -111,14 +111,14 @@ The script defines what happens, and when.  Each script element has several comm
 
 ### Component Types
 
-* `metricEmitter` defines a component that produces a floating point value.  These are typically defined once at time `0` and then modified later to change based on the metric output wanted.
-* `metric` defines a metric that is emitted on a timer, based on its spec.  Metrics use a series of `metricEmitters` to build their values.
+* `metricGenerator` defines a component that produces a floating point value.  These are typically defined once at time `0` and then modified later to change based on the metric output wanted.
+* `metric` defines a metric that is emitted on a timer, based on its spec.  Metrics use a series of `metricGenerators` to build their values.
 
-### Emitters
+### Generators
 
 #### Constant
 
-Constant emitters always produce the same value.  When redefined, they will jump directly to the new value.
+Constant generators always produce the same value.  When redefined, they will jump directly to the new value.
 
 ```yaml
 spec:
@@ -128,7 +128,7 @@ spec:
 
 #### Ramp
 
-Ramp emitters use linear intrepolation from `start` to `target` over the time `duration`.Once they reach their `target`, that value is emitted for all future samples.  Prior to the start time, the `start` value is emitted.
+Ramp generators use linear intrepolation from `start` to `target` over the time `duration`.Once they reach their `target`, that value is emitted for all future samples.  Prior to the start time, the `start` value is emitted.
 
 When a ramp is reconfigured, the current value is used as the new starting value, and the new rule takes over immediately.  For example, if a ramp is from 10 to 100 over 10m, and at 5m it is changed, the interpolated value will be used as a start for the new ramp shape.
 
@@ -138,7 +138,7 @@ When a ramp is reconfigured, the current value is used as the new starting value
 duration: 10m
 seed: 123456789
 script:
-  - type: metricEmitter
+  - type: metricGenerator
     name: ramp
     spec:
       type: ramp
@@ -154,16 +154,16 @@ script:
           k8s.pod.name: fakepod
       type: gauge
       frequency: 10s
-      emitters:
+      generators:
         - ramp
-  - type: metricEmitter
+  - type: metricGenerator
     at: 2m
     name: ramp
     spec:
       type: ramp
       target: 0.75
       duration: 8m
-  - type: metricEmitter
+  - type: metricGenerator
     at: 3m
     name: ramp
     spec:
@@ -194,12 +194,12 @@ spec:
 
 #### Metric
 
-A metric exporter emits values at some defined rate, using one or more emitters to define each emitted sample.  The component `at` indicates when the metric should fist appear.  It is common to omit `at`, causing the metric to always be present.  The component `name` will be used as the metric name by default, but it can also be included in the `spec`, allowing multiple metrics with the same name but different attributes.
+A metric exporter emits values at some defined rate, using one or more generators to define each emitted sample.  The component `at` indicates when the metric should fist appear.  It is common to omit `at`, causing the metric to always be present.  The component `name` will be used as the metric name by default, but it can also be included in the `spec`, allowing multiple metrics with the same name but different attributes.
 
 Metrics have these common fields:
 
 * `attributes.resource`, `attributes.scope`, and `attributes.datapoint` define the OpenTelemetry metric resource, scope, and datapoint attributes for each sample emitted.
-* `emitters` is a list of metric emitters that will be used to calculate each sample.  At least one is required.
+* `generators` is a list of metric generators that will be used to calculate each sample.  At least one is required.
 * `frequency` is the rate at which this metric will be produced.  Defaults to `10s`.
 * `type` sets the type, such as `gauge` or `counter`.  Types may include additional fields.
 * `name` sets the metric name used during export.  This defaults to the componet name if not set.

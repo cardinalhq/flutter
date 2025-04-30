@@ -28,7 +28,7 @@ import (
 
 var validSpikyDirs = []string{"positive", "negative", "both"}
 
-// MetricSpikyNoiseSpec configures a mostly‐zero emitter that randomly
+// MetricSpikyNoiseSpec configures a mostly‐zero generator that randomly
 // spikes with Poisson‐distributed counts when “ON”.
 type MetricSpikyNoiseSpec struct {
 	MetricGeneratorSpec `mapstructure:",squash"`

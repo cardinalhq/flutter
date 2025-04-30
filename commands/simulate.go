@@ -37,10 +37,10 @@ import (
 )
 
 type RunConfig struct {
-	Script         []config.ScriptAction
-	MetricEmitters map[string]generator.MetricGenerator
-	Metrics        map[string]exporters.MetricExporter
-	Duration       time.Duration
+	Script     []config.ScriptAction
+	Generators map[string]generator.MetricGenerator
+	Exporters  map[string]exporters.MetricExporter
+	Duration   time.Duration
 }
 
 var SimulateCmd = &cobra.Command{
@@ -76,9 +76,9 @@ func Simulate(args []string) error {
 
 func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
 	rc := RunConfig{
-		Script:         cfg.Script,
-		MetricEmitters: make(map[string]generator.MetricGenerator),
-		Metrics:        make(map[string]exporters.MetricExporter),
+		Script:     cfg.Script,
+		Generators: make(map[string]generator.MetricGenerator),
+		Exporters:  make(map[string]exporters.MetricExporter),
 	}
 
 	if len(cfg.Script) == 0 {
@@ -101,15 +101,15 @@ func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
 	}
 	rc.Duration = cfg.Duration
 
-	// Create the metric emitters
+	// Create the metric generators
 	for _, action := range rc.Script {
 		switch action.Type {
-		case "metricEmitter":
-			metricEmitter, err := generator.CreateMetricGenerator(action)
+		case "metricGenerator":
+			g, err := generator.CreateMetricGenerator(action)
 			if err != nil {
-				return nil, errors.New("Error creating metric emitter: " + err.Error())
+				return nil, errors.New("Error creating metric generator: " + err.Error())
 			}
-			rc.MetricEmitters[action.Name] = metricEmitter
+			rc.Generators[action.Name] = g
 		default:
 			// Ignore other types of actions for now
 		}
@@ -139,42 +139,41 @@ func run(cfg *config.Config, rc *RunConfig, client *http.Client) error {
 		if !cfg.Dryrun {
 			fmt.Printf("TICK! %d, %s\r", now, rs.Wallclock.Format(time.RFC3339))
 		}
-		//slog.Info("Running at time", slog.Int64("time", now), slog.Int("currentAction", rs.CurrentAction), slog.Int("scriptLength", len(rc.Script)))
 		if len(rc.Script) > rs.CurrentAction {
 			if rc.Script[rs.CurrentAction].At <= rs.Now {
 				action := rc.Script[rs.CurrentAction]
 				rs.CurrentAction++
 				switch action.Type {
-				case "metricEmitter":
-					metricEmitter, ok := rc.MetricEmitters[action.Name]
+				case "metricGenerator":
+					g, ok := rc.Generators[action.Name]
 					if !ok {
-						return fmt.Errorf("metric emitter not found: %s", action.Name)
+						return fmt.Errorf("metric generator not found: %s", action.Name)
 					}
-					err := metricEmitter.Reconfigure(action.At, action.Spec)
+					err := g.Reconfigure(action.At, action.Spec)
 					if err != nil {
-						return fmt.Errorf("error reconfiguring metric emitter: %s", action.Name)
+						return fmt.Errorf("error reconfiguring metric generator: %s", action.Name)
 					}
 				case "metric":
-					_, ok := rc.Metrics[action.Name]
+					_, ok := rc.Exporters[action.Name]
 					if ok {
-						return fmt.Errorf("metric already exists: %s", action.Name)
+						return fmt.Errorf("metric exporter already exists: %s", action.Name)
 					}
-					metric, err := exporters.CreateMetricExporter(rc.MetricEmitters, action.Name, action)
+					metric, err := exporters.CreateMetricExporter(rc.Generators, action.Name, action)
 					if err != nil {
 						return fmt.Errorf("error creating metric exporter: %s", action.Name)
 					}
-					rc.Metrics[action.Name] = metric
+					rc.Exporters[action.Name] = metric
 				}
 			}
 		}
 
-		metricNames := make([]string, 0, len(rc.Metrics))
-		for name := range rc.Metrics {
+		metricNames := make([]string, 0, len(rc.Exporters))
+		for name := range rc.Exporters {
 			metricNames = append(metricNames, name)
 		}
 		mb := signalbuilder.NewMetricsBuilder()
 		for _, name := range metricNames {
-			err := rc.Metrics[name].Emit(rc.MetricEmitters, rs, mb)
+			err := rc.Exporters[name].Emit(rc.Generators, rs, mb)
 			if err != nil {
 				return fmt.Errorf("error emitting metric: %s", name)
 			}

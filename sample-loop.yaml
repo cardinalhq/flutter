@@ -2,12 +2,12 @@ duration: 1h
 seed: 123456789
 #wallclockStart: 2000-01-01T00:00:00Z
 script:
-  - type: metricEmitter
+  - type: metricGenerator
     name: baseline
     spec:
       type: constant
       value: 5
-  - type: metricEmitter
+  - type: metricGenerator
     name: random5
     spec:
       type: randomWalk
@@ -25,16 +25,16 @@ script:
           k8s.pod.name: fakepod
       type: gauge
       frequency: 10s
-      emitters:
+      generators:
         - baseline
         - random5
-  - type: metricEmitter
+  - type: metricGenerator
     at: 5m
     name: baseline
     spec:
       type: constant
       value: 25
-  - type: metricEmitter
+  - type: metricGenerator
     at: 15m
     name: baseline
     spec:

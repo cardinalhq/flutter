@@ -2,7 +2,7 @@ duration: 10m
 seed: 123456789
 #wallclockStart: 2000-01-01T00:00:00Z
 script:
-  - type: metricEmitter
+  - type: metricGenerator
     name: ramp
     spec:
       type: ramp
@@ -18,16 +18,16 @@ script:
           k8s.pod.name: fakepod
       type: gauge
       frequency: 10s
-      emitters:
+      generators:
         - ramp
-  - type: metricEmitter
+  - type: metricGenerator
     at: 2m
     name: ramp
     spec:
       type: ramp
       target: 0.75
       duration: 8m
-  - type: metricEmitter
+  - type: metricGenerator
     at: 3m
     name: ramp
     spec:

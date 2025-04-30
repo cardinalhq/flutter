@@ -20,13 +20,14 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/cardinalhq/flutter/internal/config"
-	"github.com/cardinalhq/flutter/internal/generator"
-	"github.com/cardinalhq/flutter/internal/state"
 	"github.com/cardinalhq/oteltools/signalbuilder"
 	"github.com/mitchellh/mapstructure"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+
+	"github.com/cardinalhq/flutter/internal/config"
+	"github.com/cardinalhq/flutter/internal/generator"
+	"github.com/cardinalhq/flutter/internal/state"
 )
 
 type MetricGaugeSpec struct {
@@ -39,7 +40,7 @@ type MetricGauge struct {
 
 var _ MetricExporter = (*MetricGauge)(nil)
 
-func NewMetricGauge(emitters map[string]generator.MetricGenerator, name string, spec map[string]any) (*MetricGauge, error) {
+func NewMetricGauge(generators map[string]generator.MetricGenerator, name string, spec map[string]any) (*MetricGauge, error) {
 	gaugeSpec := MetricGaugeSpec{
 		MetricExporterSpec: MetricExporterSpec{
 			Frequency: 10 * time.Second,
@@ -59,12 +60,12 @@ func NewMetricGauge(emitters map[string]generator.MetricGenerator, name string, 
 		return nil, fmt.Errorf("unable to decode MetricGaugeSpec for %q: %w", name, err)
 	}
 
-	if len(gaugeSpec.Emitters) == 0 {
-		return nil, errors.New("no emitters specified for metric gauge: " + name)
+	if len(gaugeSpec.Generators) == 0 {
+		return nil, errors.New("no generators specified for metric gauge: " + name)
 	}
-	for _, emitterName := range gaugeSpec.Emitters {
-		if _, ok := emitters[emitterName]; !ok {
-			return nil, errors.New("unknown emitter: " + emitterName)
+	for _, generatorName := range gaugeSpec.Generators {
+		if _, ok := generators[generatorName]; !ok {
+			return nil, errors.New("unknown generator: " + generatorName)
 		}
 	}
 
@@ -73,25 +74,25 @@ func NewMetricGauge(emitters map[string]generator.MetricGenerator, name string, 
 	}, nil
 }
 
-func (m *MetricGauge) Reconfigure(emitters map[string]generator.MetricGenerator, spec map[string]any) error {
+func (m *MetricGauge) Reconfigure(generators map[string]generator.MetricGenerator, spec map[string]any) error {
 	if err := mapstructure.Decode(spec, &m.spec); err != nil {
 		return err
 	}
-	for _, emitterName := range m.spec.Emitters {
-		if _, ok := emitters[emitterName]; !ok {
-			return errors.New("unknown emitter: " + emitterName)
+	for _, generatorName := range m.spec.Generators {
+		if _, ok := generators[generatorName]; !ok {
+			return errors.New("unknown generator: " + generatorName)
 		}
 	}
 	return nil
 }
 
-func (m *MetricGauge) Emit(emitters map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error {
+func (m *MetricGauge) Emit(generators map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error {
 	if state.Now < m.spec.lastEmitted+m.spec.Frequency {
 		return nil
 	}
 	m.spec.lastEmitted = state.Now
 
-	value, err := calculateValue(emitters, m.spec.Emitters, state)
+	value, err := calculateValue(generators, m.spec.Generators, state)
 	if err != nil {
 		return err
 	}

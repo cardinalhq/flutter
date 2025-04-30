@@ -25,8 +25,8 @@ import (
 )
 
 type MetricExporter interface {
-	Emit(emitters map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error
-	Reconfigure(emitters map[string]generator.MetricGenerator, spec map[string]any) error
+	Emit(generators map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error
+	Reconfigure(generators map[string]generator.MetricGenerator, spec map[string]any) error
 }
 
 type Attributes struct {
@@ -37,7 +37,7 @@ type Attributes struct {
 
 type MetricExporterSpec struct {
 	Attributes Attributes    `mapstructure:"attributes" yaml:"attributes" json:"attributes"`
-	Emitters   []string      `mapstructure:"emitters" yaml:"emitters" json:"emitters"`
+	Generators []string      `mapstructure:"generators" yaml:"generators" json:"generators"`
 	Frequency  time.Duration `mapstructure:"frequency" yaml:"frequency" json:"frequency"`
 	Type       string        `mapstructure:"type" yaml:"type" json:"type"`
 	Name       string        `mapstructure:"name" yaml:"name" json:"name"`
@@ -45,7 +45,7 @@ type MetricExporterSpec struct {
 	lastEmitted time.Duration
 }
 
-func CreateMetricExporter(emitters map[string]generator.MetricGenerator, name string, mes config.ScriptAction) (MetricExporter, error) {
+func CreateMetricExporter(generators map[string]generator.MetricGenerator, name string, mes config.ScriptAction) (MetricExporter, error) {
 	exporterTypeAny, ok := mes.Spec["type"]
 	if !ok {
 		return nil, errors.New("missing type in metric exporter spec")
@@ -57,19 +57,19 @@ func CreateMetricExporter(emitters map[string]generator.MetricGenerator, name st
 
 	switch exporterType {
 	case "gauge":
-		return NewMetricGauge(emitters, name, mes.Spec)
+		return NewMetricGauge(generators, name, mes.Spec)
 	default:
 		return nil, errors.New("unknown metric exporter type: " + mes.Type)
 	}
 }
 
-func calculateValue(emitters map[string]generator.MetricGenerator, emitterNames []string, state *state.RunState) (float64, error) {
+func calculateValue(generators map[string]generator.MetricGenerator, generatorNames []string, state *state.RunState) (float64, error) {
 	value := 0.0
-	for _, emitterName := range emitterNames {
-		if _, ok := emitters[emitterName]; !ok {
-			return 0, errors.New("unknown emitter: " + emitterName)
+	for _, generatorName := range generatorNames {
+		if _, ok := generators[generatorName]; !ok {
+			return 0, errors.New("unknown generator: " + generatorName)
 		}
-		value = emitters[emitterName].Emit(state, value)
+		value = generators[generatorName].Emit(state, value)
 	}
 	return value, nil
 }

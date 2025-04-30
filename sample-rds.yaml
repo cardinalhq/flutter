@@ -2,13 +2,13 @@ duration: 30m
 seed: 1746030689
 script:
   # CPUUtilization.max
-  - type: metricEmitter
+  - type: metricGenerator
     name: cpuRamp
     spec:
       type: ramp
       target: 25
       duration: 10s
-  - type: metricEmitter
+  - type: metricGenerator
     name: cpuRandom
     spec:
       type: gaussianNoise
@@ -32,17 +32,17 @@ script:
           service.namespace: AWS
       type: gauge
       frequency: 60s
-      emitters:
+      generators:
         - cpuRamp
         - cpuRandom
   # Deadlocks.max
-  - type: metricEmitter
+  - type: metricGenerator
     name: deadlockRamp
     spec:
       type: ramp
       target: 0.0
       duration: 10s
-  - type: metricEmitter
+  - type: metricGenerator
     name: deadlockRandom
     spec:
       type: gaussianNoise
@@ -65,17 +65,17 @@ script:
           service.namespace: AWS
       type: gauge
       frequency: 60s
-      emitters:
+      generators:
         - deadlockRamp
         - deadlockRandom
   # CommitLatency.max
-  - type: metricEmitter
+  - type: metricGenerator
     name: latencyRamp
     spec:
       type: ramp
       target: 0.25
       duration: 10s
-  - type: metricEmitter
+  - type: metricGenerator
     name: latencyRandom
     spec:
       type: gaussianNoise
@@ -99,6 +99,6 @@ script:
           service.namespace: AWS
       type: gauge
       frequency: 60s
-      emitters:
+      generators:
         - latencyRamp
         - latencyRandom

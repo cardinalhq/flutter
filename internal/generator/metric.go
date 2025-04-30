@@ -33,17 +33,17 @@ type MetricGeneratorSpec struct {
 
 func CreateMetricGenerator(mes config.ScriptAction) (MetricGenerator, error) {
 	if mes.Spec == nil {
-		return nil, errors.New("missing spec in metric emitter")
+		return nil, errors.New("missing spec in metric generator")
 	}
-	emitterTypeAny, ok := mes.Spec["type"]
+	generatorTypeAny, ok := mes.Spec["type"]
 	if !ok {
-		return nil, errors.New("missing type in metric emitter spec")
+		return nil, errors.New("missing type in metric generator spec")
 	}
-	emitterType, ok := emitterTypeAny.(string)
+	generatorType, ok := generatorTypeAny.(string)
 	if !ok {
-		return nil, errors.New("type in metric emitter spec is not a string")
+		return nil, errors.New("type in metric generator spec is not a string")
 	}
-	switch emitterType {
+	switch generatorType {
 	case "constant":
 		return NewMetricConstant(mes.At, mes.Spec)
 	case "gaussianNoise":
@@ -57,6 +57,6 @@ func CreateMetricGenerator(mes config.ScriptAction) (MetricGenerator, error) {
 	case "spikyNoise":
 		return NewMetricSpikyNoise(mes.At, mes.Spec)
 	default:
-		return nil, errors.New("unknown metric emitter type: " + mes.Type)
+		return nil, errors.New("unknown metric generator type: " + mes.Type)
 	}
 }
