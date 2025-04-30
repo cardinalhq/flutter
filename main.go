@@ -77,11 +77,11 @@ func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
 		panic("No script actions found in config")
 	}
 	slices.SortFunc(rc.Script, func(a, b config.ScriptAction) int {
-		if a.At != b.At {
-			return int(a.At - b.At)
+		if v := int(a.At - b.At); v != 0 {
+			return v
 		}
-		if a.Type != b.Type {
-			return strings.Compare(a.Type, b.Type)
+		if v := strings.Compare(a.Type, b.Type); v != 0 {
+			return v
 		}
 		return strings.Compare(a.Name, b.Name)
 	})
@@ -89,7 +89,7 @@ func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
 		cfg.Duration = rc.Script[len(rc.Script)-1].At
 	}
 	if cfg.Duration < rc.Script[len(rc.Script)-1].At {
-		panic("Duration must be greater than last script action time")
+		panic("Duration must be greater than or equal to the last script action time, or 0 for automatic")
 	}
 	rc.Duration = cfg.Duration
 
