@@ -31,14 +31,14 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric/pmetricotlp"
 
 	"github.com/cardinalhq/flutter/internal/config"
-	"github.com/cardinalhq/flutter/internal/emitter"
 	"github.com/cardinalhq/flutter/internal/exporters"
+	"github.com/cardinalhq/flutter/internal/generator"
 	"github.com/cardinalhq/flutter/internal/state"
 )
 
 type RunConfig struct {
 	Script         []config.ScriptAction
-	MetricEmitters map[string]emitter.MetricEmitter
+	MetricEmitters map[string]generator.MetricGenerator
 	Metrics        map[string]exporters.MetricExporter
 	Duration       time.Duration
 }
@@ -77,7 +77,7 @@ func Simulate(args []string) error {
 func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
 	rc := RunConfig{
 		Script:         cfg.Script,
-		MetricEmitters: make(map[string]emitter.MetricEmitter),
+		MetricEmitters: make(map[string]generator.MetricGenerator),
 		Metrics:        make(map[string]exporters.MetricExporter),
 	}
 
@@ -105,7 +105,7 @@ func makeRunningConfig(cfg *config.Config) (*RunConfig, error) {
 	for _, action := range rc.Script {
 		switch action.Type {
 		case "metricEmitter":
-			metricEmitter, err := emitter.CreateMetricEmitter(action)
+			metricEmitter, err := generator.CreateMetricGenerator(action)
 			if err != nil {
 				return nil, errors.New("Error creating metric emitter: " + err.Error())
 			}

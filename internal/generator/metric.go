@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package emitter
+package generator
 
 import (
 	"errors"
@@ -22,16 +22,16 @@ import (
 	"github.com/cardinalhq/flutter/internal/state"
 )
 
-type MetricEmitter interface {
+type MetricGenerator interface {
 	Emit(state *state.RunState, initial float64) float64
 	Reconfigure(at time.Duration, spec map[string]any) error
 }
 
-type MetricEmitterSpec struct {
+type MetricGeneratorSpec struct {
 	Type string `mapstructure:"type" yaml:"type" json:"type"`
 }
 
-func CreateMetricEmitter(mes config.ScriptAction) (MetricEmitter, error) {
+func CreateMetricGenerator(mes config.ScriptAction) (MetricGenerator, error) {
 	if mes.Spec == nil {
 		return nil, errors.New("missing spec in metric emitter")
 	}

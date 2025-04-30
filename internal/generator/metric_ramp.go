@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package emitter
+package generator
 
 import (
 	"errors"
@@ -23,10 +23,10 @@ import (
 )
 
 type MetricRampSpec struct {
-	MetricEmitterSpec `mapstructure:",squash"`
-	Start             float64       `mapstructure:"start" yaml:"start" json:"start"`
-	Target            float64       `mapstructure:"target" yaml:"target" json:"target"`
-	Duration          time.Duration `mapstructure:"duration" yaml:"duration" json:"duration"`
+	MetricGeneratorSpec `mapstructure:",squash"`
+	Start               float64       `mapstructure:"start" yaml:"start" json:"start"`
+	Target              float64       `mapstructure:"target" yaml:"target" json:"target"`
+	Duration            time.Duration `mapstructure:"duration" yaml:"duration" json:"duration"`
 }
 
 type MetricRamp struct {
@@ -34,7 +34,7 @@ type MetricRamp struct {
 	at   time.Duration
 }
 
-var _ MetricEmitter = (*MetricRamp)(nil)
+var _ MetricGenerator = (*MetricRamp)(nil)
 
 func NewMetricRamp(at time.Duration, is map[string]any) (*MetricRamp, error) {
 	spec := MetricRampSpec{}

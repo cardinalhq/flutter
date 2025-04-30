@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package emitter
+package generator
 
 import (
 	"fmt"
@@ -31,11 +31,11 @@ import (
 // then clamps into [target−variation, target+variation].
 // Emit(in) returns in + x.
 type MetricRandomWalkSpec struct {
-	MetricEmitterSpec `mapstructure:",squash"`
-	Target            float64 `mapstructure:"target" yaml:"target" json:"target"`
-	Elasticity        float64 `mapstructure:"elasticity" yaml:"elasticity" json:"elasticity"`
-	StepSize          float64 `mapstructure:"stepSize" yaml:"stepSize" json:"stepSize"`
-	Variation         float64 `mapstructure:"variation" yaml:"variation" json:"variation"`
+	MetricGeneratorSpec `mapstructure:",squash"`
+	Target              float64 `mapstructure:"target" yaml:"target" json:"target"`
+	Elasticity          float64 `mapstructure:"elasticity" yaml:"elasticity" json:"elasticity"`
+	StepSize            float64 `mapstructure:"stepSize" yaml:"stepSize" json:"stepSize"`
+	Variation           float64 `mapstructure:"variation" yaml:"variation" json:"variation"`
 }
 
 type MetricRandomWalk struct {
@@ -44,7 +44,7 @@ type MetricRandomWalk struct {
 	min, max float64
 }
 
-var _ MetricEmitter = (*MetricRandomWalk)(nil)
+var _ MetricGenerator = (*MetricRandomWalk)(nil)
 
 func NewMetricRandomWalk(_ time.Duration, is map[string]any) (*MetricRandomWalk, error) {
 	spec := MetricRandomWalkSpec{}

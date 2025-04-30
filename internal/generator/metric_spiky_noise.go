@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package emitter
+package generator
 
 import (
 	"fmt"
@@ -31,7 +31,7 @@ var validSpikyDirs = []string{"positive", "negative", "both"}
 // MetricSpikyNoiseSpec configures a mostly‐zero emitter that randomly
 // spikes with Poisson‐distributed counts when “ON”.
 type MetricSpikyNoiseSpec struct {
-	MetricEmitterSpec `mapstructure:",squash"`
+	MetricGeneratorSpec `mapstructure:",squash"`
 
 	// PStart: chance per interval to transition from OFF→ON (0–1).
 	PStart float64 `mapstructure:"pStart" yaml:"pStart" json:"pStart"`
@@ -50,7 +50,7 @@ type MetricSpikyNoise struct {
 	spiking bool
 }
 
-var _ MetricEmitter = (*MetricSpikyNoise)(nil)
+var _ MetricGenerator = (*MetricSpikyNoise)(nil)
 
 func NewMetricSpikyNoise(_ time.Duration, is map[string]any) (*MetricSpikyNoise, error) {
 	spec := MetricSpikyNoiseSpec{

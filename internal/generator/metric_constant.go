@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package emitter
+package generator
 
 import (
 	"time"
@@ -24,15 +24,15 @@ import (
 )
 
 type MetricConstantSpec struct {
-	MetricEmitterSpec `mapstructure:",squash"`
-	Value             float64 `mapstructure:"value" yaml:"value" json:"value"`
+	MetricGeneratorSpec `mapstructure:",squash"`
+	Value               float64 `mapstructure:"value" yaml:"value" json:"value"`
 }
 
 type MetricConstant struct {
 	spec MetricConstantSpec
 }
 
-var _ MetricEmitter = (*MetricConstant)(nil)
+var _ MetricGenerator = (*MetricConstant)(nil)
 
 func NewMetricConstant(_ time.Duration, is map[string]any) (*MetricConstant, error) {
 	spec := MetricConstantSpec{}

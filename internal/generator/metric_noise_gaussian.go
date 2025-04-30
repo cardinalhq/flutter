@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package emitter
+package generator
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ import (
 // then clamps x into [Target-Variation, Target+Variation].
 // Emit(in) returns in + x.
 type MetricGaussianNoiseSpec struct {
-	MetricEmitterSpec `mapstructure:",squash"`
+	MetricGeneratorSpec `mapstructure:",squash"`
 
 	// Target is the mean around which Gaussian noise is drawn.
 	Target float64 `mapstructure:"target" yaml:"target" json:"target"`
@@ -50,7 +50,7 @@ type MetricGaussianNoise struct {
 	stdDev float64
 }
 
-var _ MetricEmitter = (*MetricGaussianNoise)(nil)
+var _ MetricGenerator = (*MetricGaussianNoise)(nil)
 
 var validGaussianDirs = []string{"positive", "negative", "both"}
 

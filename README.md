@@ -11,11 +11,21 @@ these emitters to form telemetry.  Emitters can be altered
 at different points in time.  Metrics can use one or more
 emitter to form the datapoint values.
 
-## Usage
+## Installation
+
+You can run it without insalling:
 
 ```sh
-flutter confg.yaml [other.yaml ...]
+go run github.com/cardinalhq/flutter/cmd/flutter@latest confg.yaml [other.yaml ...]
 ```
+
+Or you can install it as a command:
+
+```sh
+go install github.com/cardinalhq/flutter/cmd/flutter@latest
+```
+
+## Usage
 
 The options are one or more configuration files in YAML format.  They are
 merged while loading, with the later options (usually) overwriting the
@@ -24,7 +34,7 @@ earlier ones.
 ### Example
 
 ```sh
-% flutter sample-dryrun.yaml sample-config.yaml
+% go run github.com/cardinalhq/flutter/cmd/flutter@latest sample-dryrun.yaml sample-config.yaml
 2025/04/30 10:44:12 INFO MetricGauge Emit ts=10s metricName=pod.cpu.usage value=8.603450562309138
 2025/04/30 10:44:12 INFO MetricGauge Emit ts=20s metricName=pod.cpu.usage value=8.9923406286904
 2025/04/30 10:44:12 INFO MetricGauge Emit ts=30s metricName=pod.cpu.usage value=9.15036693509603

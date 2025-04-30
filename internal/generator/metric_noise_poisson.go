@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package emitter
+package generator
 
 import (
 	"fmt"
@@ -34,7 +34,7 @@ var validPoissonDirs = []string{"positive", "negative", "both"}
 // then clamps it to [max(0,Target−Variation) … Target+Variation]
 // and applies directionality.
 type MetricPoissonNoiseSpec struct {
-	MetricEmitterSpec `mapstructure:",squash"`
+	MetricGeneratorSpec `mapstructure:",squash"`
 
 	// Target is the expected events per Emit() interval.
 	Target float64 `mapstructure:"target" yaml:"target" json:"target"`
@@ -48,7 +48,7 @@ type MetricPoissonNoise struct {
 	spec MetricPoissonNoiseSpec
 }
 
-var _ MetricEmitter = (*MetricPoissonNoise)(nil)
+var _ MetricGenerator = (*MetricPoissonNoise)(nil)
 
 func NewMetricPoissonNoise(_ time.Duration, is map[string]any) (*MetricPoissonNoise, error) {
 	spec := MetricPoissonNoiseSpec{

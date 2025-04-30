@@ -19,14 +19,14 @@ import (
 	"time"
 
 	"github.com/cardinalhq/flutter/internal/config"
-	"github.com/cardinalhq/flutter/internal/emitter"
+	"github.com/cardinalhq/flutter/internal/generator"
 	"github.com/cardinalhq/flutter/internal/state"
 	"github.com/cardinalhq/oteltools/signalbuilder"
 )
 
 type MetricExporter interface {
-	Emit(emitters map[string]emitter.MetricEmitter, state *state.RunState, mb *signalbuilder.MetricsBuilder) error
-	Reconfigure(emitters map[string]emitter.MetricEmitter, spec map[string]any) error
+	Emit(emitters map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error
+	Reconfigure(emitters map[string]generator.MetricGenerator, spec map[string]any) error
 }
 
 type Attributes struct {
@@ -45,7 +45,7 @@ type MetricExporterSpec struct {
 	lastEmitted time.Duration
 }
 
-func CreateMetricExporter(emitters map[string]emitter.MetricEmitter, name string, mes config.ScriptAction) (MetricExporter, error) {
+func CreateMetricExporter(emitters map[string]generator.MetricGenerator, name string, mes config.ScriptAction) (MetricExporter, error) {
 	exporterTypeAny, ok := mes.Spec["type"]
 	if !ok {
 		return nil, errors.New("missing type in metric exporter spec")
@@ -63,7 +63,7 @@ func CreateMetricExporter(emitters map[string]emitter.MetricEmitter, name string
 	}
 }
 
-func calculateValue(emitters map[string]emitter.MetricEmitter, emitterNames []string, state *state.RunState) (float64, error) {
+func calculateValue(emitters map[string]generator.MetricGenerator, emitterNames []string, state *state.RunState) (float64, error) {
 	value := 0.0
 	for _, emitterName := range emitterNames {
 		if _, ok := emitters[emitterName]; !ok {

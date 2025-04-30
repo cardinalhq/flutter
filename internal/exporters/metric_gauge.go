@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/cardinalhq/flutter/internal/config"
-	"github.com/cardinalhq/flutter/internal/emitter"
+	"github.com/cardinalhq/flutter/internal/generator"
 	"github.com/cardinalhq/flutter/internal/state"
 	"github.com/cardinalhq/oteltools/signalbuilder"
 	"github.com/mitchellh/mapstructure"
@@ -39,7 +39,7 @@ type MetricGauge struct {
 
 var _ MetricExporter = (*MetricGauge)(nil)
 
-func NewMetricGauge(emitters map[string]emitter.MetricEmitter, name string, spec map[string]any) (*MetricGauge, error) {
+func NewMetricGauge(emitters map[string]generator.MetricGenerator, name string, spec map[string]any) (*MetricGauge, error) {
 	gaugeSpec := MetricGaugeSpec{
 		MetricExporterSpec: MetricExporterSpec{
 			Frequency: 10 * time.Second,
@@ -73,7 +73,7 @@ func NewMetricGauge(emitters map[string]emitter.MetricEmitter, name string, spec
 	}, nil
 }
 
-func (m *MetricGauge) Reconfigure(emitters map[string]emitter.MetricEmitter, spec map[string]any) error {
+func (m *MetricGauge) Reconfigure(emitters map[string]generator.MetricGenerator, spec map[string]any) error {
 	if err := mapstructure.Decode(spec, &m.spec); err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (m *MetricGauge) Reconfigure(emitters map[string]emitter.MetricEmitter, spe
 	return nil
 }
 
-func (m *MetricGauge) Emit(emitters map[string]emitter.MetricEmitter, state *state.RunState, mb *signalbuilder.MetricsBuilder) error {
+func (m *MetricGauge) Emit(emitters map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error {
 	if state.Now < m.spec.lastEmitted+m.spec.Frequency {
 		return nil
 	}
