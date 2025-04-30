@@ -48,6 +48,8 @@ func CreateMetricEmitter(mes config.ScriptAction) (MetricEmitter, error) {
 		return NewMetricConstant(mes.At, mes.Spec)
 	case "randomWalk":
 		return NewMetricRandomWalk(mes.At, mes.Spec)
+	case "gaussianNoise":
+		return NewMetricGaussianNoise(mes.At, mes.Spec)
 	case "ramp":
 		return NewMetricRamp(mes.At, mes.Spec)
 	default:

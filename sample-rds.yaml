@@ -1,32 +1,41 @@
 duration: 30m
 seed: 1746030689
 script:
+  # CPUUtilization.max
   - type: metricEmitter
     name: cpuRamp
     spec:
       type: ramp
-      target: 0.25
+      target: 25
       duration: 10s
   - type: metricEmitter
     name: cpuRandom
     spec:
-      type: randomWalk
+      type: gaussianNoise
       target: 0
-      stepSize: 0.01
-      elasticity: 0.1
-      variation: 0.08
+      stdDev: 2.6
+      variation: 8
   - type: metric
-    name: rds.cpu
+    name: CPUUtilization.max
     spec:
       attributes:
         resource:
-          k8s.namespace.name: fakenamespace
-          k8s.pod.name: fakepod
+          cloud.account.id: 123456789012
+          cloud.provider: aws
+          cloud.region: us-east-1
+          DatabaseClass: db.r6g.large
+          DBClusterIdentifier: koda
+          DBInstanceIdentifier: koda-0
+          EngineName: aurora-postgresql
+          Role: WRITER
+          service.name: koda-0
+          service.namespace: AWS
       type: gauge
-      frequency: 10s
+      frequency: 60s
       emitters:
         - cpuRamp
         - cpuRandom
+  # Deadlocks.max
   - type: metricEmitter
     name: deadlockRamp
     spec:
@@ -36,23 +45,30 @@ script:
   - type: metricEmitter
     name: deadlockRandom
     spec:
-      type: randomWalk
+      type: gaussianNoise
       target: 0
-      stepSize: 0.01
-      elasticity: 0.1
       variation: 0
   - type: metric
-    name: rds.deadlock
+    name: Deadlocks.max
     spec:
       attributes:
         resource:
-          k8s.namespace.name: fakenamespace
-          k8s.pod.name: fakepod
+          cloud.account.id: 123456789012
+          cloud.provider: aws
+          cloud.region: us-east-1
+          DatabaseClass: db.r6g.large
+          DBClusterIdentifier: koda
+          DBInstanceIdentifier: koda-0
+          EngineName: aurora-postgresql
+          Role: WRITER
+          service.name: koda-0
+          service.namespace: AWS
       type: gauge
-      frequency: 10s
+      frequency: 60s
       emitters:
         - deadlockRamp
         - deadlockRandom
+  # CommitLatency.max
   - type: metricEmitter
     name: latencyRamp
     spec:
@@ -62,20 +78,27 @@ script:
   - type: metricEmitter
     name: latencyRandom
     spec:
-      type: randomWalk
-      target: 0
-      stepSize: 0.01
-      elasticity: 0.1
-      variation: 0.08
+      type: gaussianNoise
+      target: 3
+      variation: 10
+      direction: positive
   - type: metric
-    name: rds.latency
+    name: CommitLatency.max
     spec:
       attributes:
         resource:
-          k8s.namespace.name: fakenamespace
-          k8s.pod.name: fakepod
+          cloud.account.id: 123456789012
+          cloud.provider: aws
+          cloud.region: us-east-1
+          DatabaseClass: db.r6g.large
+          DBClusterIdentifier: koda
+          DBInstanceIdentifier: koda-0
+          EngineName: aurora-postgresql
+          Role: WRITER
+          service.name: koda-0
+          service.namespace: AWS
       type: gauge
-      frequency: 10s
+      frequency: 60s
       emitters:
         - latencyRamp
         - latencyRandom
