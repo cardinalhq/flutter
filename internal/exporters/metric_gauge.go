@@ -96,11 +96,15 @@ func (m *MetricGauge) Emit(emitters map[string]emitter.MetricEmitter, state *sta
 	}
 
 	rattr := pcommon.NewMap()
-	rattr.FromRaw(m.spec.Attributes.Resource)
+	if err := rattr.FromRaw(m.spec.Attributes.Resource); err != nil {
+		return fmt.Errorf("failed to create resource attributes: %w", err)
+	}
 	r := mb.Resource(rattr)
 
 	sattr := pcommon.NewMap()
-	sattr.FromRaw(m.spec.Attributes.Scope)
+	if err := sattr.FromRaw(m.spec.Attributes.Scope); err != nil {
+		return fmt.Errorf("failed to create scope attributes: %w", err)
+	}
 	s := r.Scope(sattr)
 
 	mm, err := s.Metric(m.spec.name, "unit", pmetric.MetricTypeGauge)
@@ -109,7 +113,10 @@ func (m *MetricGauge) Emit(emitters map[string]emitter.MetricEmitter, state *sta
 	}
 
 	dattr := pcommon.NewMap()
-	dattr.FromRaw(m.spec.Attributes.Datapoint)
+	if err := dattr.FromRaw(m.spec.Attributes.Datapoint); err != nil {
+		return fmt.Errorf("failed to create datapoint attributes: %w", err)
+	}
+
 	dp, _, _ := mm.Datapoint(dattr, pcommon.NewTimestampFromTime(state.Wallclock))
 	dp.SetDoubleValue(value)
 

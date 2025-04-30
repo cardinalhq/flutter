@@ -60,7 +60,7 @@ func main() {
 	}
 
 	httpClient := &http.Client{
-		Timeout: time.Duration(cfg.OTLPDestination.Timeout),
+		Timeout: cfg.OTLPDestination.Timeout,
 	}
 
 	run(cfg, runConfig, httpClient)
@@ -147,7 +147,7 @@ func run(cfg *config.Config, rc *RunConfig, client *http.Client) {
 						panic("Error reconfiguring metric emitter: " + err.Error())
 					}
 				case "metric":
-					metric, ok := rc.Metrics[action.Name]
+					_, ok := rc.Metrics[action.Name]
 					if ok {
 						panic("Metric already exists: " + action.Name)
 					}
