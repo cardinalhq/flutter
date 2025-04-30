@@ -40,8 +40,8 @@ type MetricExporterSpec struct {
 	Emitters   []string      `mapstructure:"emitters" yaml:"emitters" json:"emitters"`
 	Frequency  time.Duration `mapstructure:"frequency" yaml:"frequency" json:"frequency"`
 	Type       string        `mapstructure:"type" yaml:"type" json:"type"`
+	Name       string        `mapstructure:"name" yaml:"name" json:"name"`
 
-	name        string
 	lastEmitted time.Duration
 }
 
@@ -54,6 +54,7 @@ func CreateMetricExporter(emitters map[string]emitter.MetricEmitter, name string
 	if !ok {
 		return nil, errors.New("type in metric exporter spec is not a string")
 	}
+
 	switch exporterType {
 	case "gauge":
 		return NewMetricGauge(emitters, name, mes.Spec)
@@ -62,9 +63,9 @@ func CreateMetricExporter(emitters map[string]emitter.MetricEmitter, name string
 	}
 }
 
-func calculateValue(emitters map[string]emitter.MetricEmitter, names []string, state *state.RunState) (float64, error) {
+func calculateValue(emitters map[string]emitter.MetricEmitter, emitterNames []string, state *state.RunState) (float64, error) {
 	value := 0.0
-	for _, emitterName := range names {
+	for _, emitterName := range emitterNames {
 		if _, ok := emitters[emitterName]; !ok {
 			return 0, errors.New("unknown emitter: " + emitterName)
 		}

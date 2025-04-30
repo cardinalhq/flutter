@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/cardinalhq/flutter/internal/config"
 	"github.com/cardinalhq/flutter/internal/emitter"
@@ -41,8 +42,8 @@ var _ MetricExporter = (*MetricGauge)(nil)
 func NewMetricGauge(emitters map[string]emitter.MetricEmitter, name string, spec map[string]any) (*MetricGauge, error) {
 	gaugeSpec := MetricGaugeSpec{
 		MetricExporterSpec: MetricExporterSpec{
-			Frequency: 10,
-			name:      name,
+			Frequency: 10 * time.Second,
+			Name:      name,
 		},
 	}
 	if name == "" {
@@ -107,7 +108,7 @@ func (m *MetricGauge) Emit(emitters map[string]emitter.MetricEmitter, state *sta
 	}
 	s := r.Scope(sattr)
 
-	mm, err := s.Metric(m.spec.name, "unit", pmetric.MetricTypeGauge)
+	mm, err := s.Metric(m.spec.Name, "unit", pmetric.MetricTypeGauge)
 	if err != nil {
 		return fmt.Errorf("failed to create metric: %w", err)
 	}
@@ -120,7 +121,7 @@ func (m *MetricGauge) Emit(emitters map[string]emitter.MetricEmitter, state *sta
 	dp, _, _ := mm.Datapoint(dattr, pcommon.NewTimestampFromTime(state.Wallclock))
 	dp.SetDoubleValue(value)
 
-	slog.Info("MetricGauge Emit", slog.Duration("ts", state.Now), slog.String("metricName", m.spec.name), slog.Float64("value", value))
+	slog.Info("MetricGauge Emit", slog.Duration("ts", state.Now), slog.String("metricName", m.spec.Name), slog.Float64("value", value))
 
 	return nil
 }
