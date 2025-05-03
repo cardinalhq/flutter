@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
@@ -182,7 +183,7 @@ func run(cfg *config.Config, rc *RunConfig, client *http.Client) error {
 
 		if !cfg.Dryrun && cfg.OTLPDestination.Endpoint != "" {
 			if err := sendOTLPMetric(context.Background(), client, cfg.OTLPDestination.Headers, mm, cfg.OTLPDestination.Endpoint); err != nil {
-				return fmt.Errorf("error sending OTLP metric: %w", err)
+				slog.Warn("failed to send OTLP metrics", "error", err)
 			}
 		}
 
