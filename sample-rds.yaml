@@ -1,103 +1,430 @@
-duration: 30m
-seed: 1746030689
+duration: 2h
+seed: 123456789
 script:
-  # CPUUtilization.max
+  #—— Generator definitions ————————————————————————————————————————————————
+  # Pod CPU usage (in cores)
   - type: metricGenerator
-    name: cpuRamp
+    name: podCpuRamp
     spec:
       type: ramp
-      target: 25
+      target: 0.1
       duration: 10s
   - type: metricGenerator
-    name: cpuRandom
+    name: podCpuNoise
     spec:
       type: gaussianNoise
       target: 0
-      variation: 8
+      variation: 0.02
+      direction: positive
+
+  # HTTP server latency (seconds)
+  - type: metricGenerator
+    name: httpLatencyRamp
+    spec:
+      type: ramp
+      target: 0.1
+      duration: 10s
+  - type: metricGenerator
+    name: httpLatencyNoise
+    spec:
+      type: gaussianNoise
+      target: 0
+      variation: 0.05
+      direction: positive
+
+  # HTTP server errors (count per 10 s)
+  - type: metricGenerator
+    name: httpErrorRamp
+    spec:
+      type: ramp
+      target: 0
+      duration: 10s
+  - type: metricGenerator
+    name: httpErrorNoise
+    spec:
+      type: spikyNoise
+      pStart: 0.05
+      pEnd: 0.2
+      peakTarget: 0
+      variation: 5
+
+  # DB CPU utilization (percentage)
+  - type: metricGenerator
+    name: dbCpuRamp
+    spec:
+      type: ramp
+      target: 10
+      duration: 10s
+  - type: metricGenerator
+    name: dbCpuNoise
+    spec:
+      type: gaussianNoise
+      target: 0
+      variation: 3
+
+  # Commit latency (seconds)
+  - type: metricGenerator
+    name: commitLatRamp
+    spec:
+      type: ramp
+      target: 0.025
+      duration: 10s
+  - type: metricGenerator
+    name: commitLatNoise
+    spec:
+      type: gaussianNoise
+      target: 0
+      variation: 0.02
+
+  # Deadlocks (count per 60 s)
+  - type: metricGenerator
+    name: deadlockRamp
+    spec:
+      type: ramp
+      target: 0
+      duration: 10s
+  - type: metricGenerator
+    name: deadlockNoise
+    spec:
+      type: gaussianNoise
+      target: 0
+      variation: 0.1
+      direction: positive
+
+  - type: metricGenerator
+    name: dbQueriesRamp
+    spec:
+      type: ramp
+      target: 100
+      duration: 10s
+
+  - type: metricGenerator
+    name: dbQueriesNoise
+    spec:
+      type: gaussianNoise
+      target: 20
+      variation: 7.5
+
+  #—— Metric definitions ————————————————————————————————————————————————
+  - type: metric
+    name: spanmetrics.db_requests_sent
+    spec:
+      attributes:
+        resource:
+          db.collection.name: treatbin
+          db.system.name: postgresql
+          db.operation.name: select
+          server.address: mocha-cache.cluster-randomstring.us-east-2.rds.amazonaws.com
+          has_error: false
+          service.name: koda
+          k8s.cluster.name: fakecluster
+          k8s.namespace.name: default
+          k8s.pod.name: koda-0
+      type: gauge
+      frequency: 10s
+      generators:
+        - dbQueriesRamp
+        - dbQueriesNoise
+
+  - type: metric
+    name: pod.cpu.usage
+    spec:
+      attributes:
+        resource:
+          k8s.cluster.name: fakecluster
+          k8s.namespace.name: default
+          k8s.pod.name: koda-0
+      type: gauge
+      frequency: 10s
+      generators:
+        - podCpuRamp
+        - podCpuNoise
+
+  - type: metric
+    name: http.server.duration
+    spec:
+      attributes:
+        resource:
+          k8s.cluster.name: fakecluster
+          k8s.namespace.name: default
+          k8s.pod.name: koda-0
+          service.name: koda
+      type: gauge
+      frequency: 10s
+      generators:
+        - httpLatencyRamp
+        - httpLatencyNoise
+
+  - type: metric
+    name: http.server.errors
+    spec:
+      attributes:
+        resource:
+          k8s.cluster.name: fakecluster
+          k8s.namespace.name: default
+          k8s.pod.name: koda-0
+          service.name: koda
+      type: gauge
+      frequency: 10s
+      generators:
+        - httpErrorRamp
+        - httpErrorNoise
+
   - type: metric
     name: CPUUtilization.max
     spec:
       attributes:
         resource:
-          cloud.account.id: 123456789012
+          cloud.account.id: "123456789012"
           cloud.provider: aws
-          cloud.region: us-east-1
-          DatabaseClass: db.r6g.large
-          DBClusterIdentifier: koda
-          DBInstanceIdentifier: koda-0
-          EngineName: aurora-postgresql
+          cloud.region: us-east-2
+          DatabaseClass: db.t3.medium
+          DBClusterIdentifier: mocha-cache
+          DBInstanceIdentifier: mocha-cache-0
+          EngineName: postgresql
           Role: WRITER
-          service.name: koda-0
+          service.name: mocha-cache
           service.namespace: AWS
       type: gauge
       frequency: 60s
       generators:
-        - cpuRamp
-        - cpuRandom
-  # Deadlocks.max
-  - type: metricGenerator
-    name: deadlockRamp
-    spec:
-      type: ramp
-      target: 0.0
-      duration: 10s
-  - type: metricGenerator
-    name: deadlockRandom
-    spec:
-      type: gaussianNoise
-      target: 0
-      variation: 0
-  - type: metric
-    name: Deadlocks.max
-    spec:
-      attributes:
-        resource:
-          cloud.account.id: 123456789012
-          cloud.provider: aws
-          cloud.region: us-east-1
-          DatabaseClass: db.r6g.large
-          DBClusterIdentifier: koda
-          DBInstanceIdentifier: koda-0
-          EngineName: aurora-postgresql
-          Role: WRITER
-          service.name: koda-0
-          service.namespace: AWS
-      type: gauge
-      frequency: 60s
-      generators:
-        - deadlockRamp
-        - deadlockRandom
-  # CommitLatency.max
-  - type: metricGenerator
-    name: latencyRamp
-    spec:
-      type: ramp
-      target: 0.25
-      duration: 10s
-  - type: metricGenerator
-    name: latencyRandom
-    spec:
-      type: gaussianNoise
-      target: 3
-      variation: 10
-      direction: positive
+        - dbCpuRamp
+        - dbCpuNoise
+
   - type: metric
     name: CommitLatency.max
     spec:
       attributes:
         resource:
-          cloud.account.id: 123456789012
+          cloud.account.id: "123456789012"
           cloud.provider: aws
-          cloud.region: us-east-1
-          DatabaseClass: db.r6g.large
-          DBClusterIdentifier: koda
-          DBInstanceIdentifier: koda-0
-          EngineName: aurora-postgresql
+          cloud.region: us-east-2
+          DatabaseClass: db.t3.medium
+          DBClusterIdentifier: mocha-cache
+          DBInstanceIdentifier: mocha-cache-0
+          EngineName: postgresql
           Role: WRITER
-          service.name: koda-0
+          service.name: mocha-cache
           service.namespace: AWS
       type: gauge
       frequency: 60s
       generators:
-        - latencyRamp
-        - latencyRandom
+        - commitLatRamp
+        - commitLatNoise
+
+  - type: metric
+    name: Deadlocks.max
+    spec:
+      attributes:
+        resource:
+          cloud.account.id: "123456789012"
+          cloud.provider: aws
+          cloud.region: us-east-2
+          DatabaseClass: db.t3.medium
+          DBClusterIdentifier: mocha-cache
+          DBInstanceIdentifier: mocha-cache-0
+          EngineName: postgresql
+          Role: WRITER
+          service.name: mocha-cache
+          service.namespace: AWS
+      type: gauge
+      frequency: 60s
+      generators:
+        - deadlockRamp
+        - deadlockNoise
+
+  #—— 10 m ramp-up (10 – 20 m) ———————————————————————————————————————————
+  - type: metricGenerator
+    at: 40m
+    name: podCpuRamp
+    spec:
+      type: ramp
+      target: 0.8
+      duration: 5m
+
+  - type: metricGenerator
+    at: 40m
+    name: httpLatencyRamp
+    spec:
+      type: ramp
+      target: 1.5
+      duration: 5m
+
+  - type: metricGenerator
+    at: 40m
+    name: httpErrorRamp
+    spec:
+      type: ramp
+      target: 150
+      duration: 3m
+
+  - type: metricGenerator
+    at: 40m
+    name: dbCpuRamp
+    spec:
+      type: ramp
+      target: 95
+      duration: 2m
+
+  - type: metricGenerator
+    at: 40m
+    name: commitLatRamp
+    spec:
+      type: ramp
+      target: 0.6
+      duration: 2m
+
+  - type: metricGenerator
+    at: 40m
+    name: deadlockRamp
+    spec:
+      type: ramp
+      target: 5
+      duration: 1m
+
+  #—— Recovery at 25 m ———————————————————————————————————————————————
+  - type: metricGenerator
+    at: 65m
+    name: podCpuRamp
+    spec:
+      type: ramp
+      target: 0.1
+      duration: 10s
+
+  - type: metricGenerator
+    at: 65m
+    name: httpLatencyRamp
+    spec:
+      type: ramp
+      target: 0.1
+      duration: 10s
+
+  - type: metricGenerator
+    at: 65m
+    name: httpErrorRamp
+    spec:
+      type: ramp
+      target: 0
+      duration: 10s
+
+  - type: metricGenerator
+    at: 65m
+    name: dbCpuRamp
+    spec:
+      type: ramp
+      target: 10
+      duration: 10s
+
+  - type: metricGenerator
+    at: 65m
+    name: commitLatRamp
+    spec:
+      type: ramp
+      target: 0.025
+      duration: 10s
+
+  - type: metricGenerator
+    at: 65m
+    name: deadlockRamp
+    spec:
+      type: ramp
+      target: 0
+      duration: 10s
+
+  #—— Fast 8 m ramp-up at 60 m (60 – 68 m) ——————————————————————————————
+  - type: metricGenerator
+    at: 80m
+    name: podCpuRamp
+    spec:
+      type: ramp
+      target: 0.5
+      duration: 8m
+
+  - type: metricGenerator
+    at: 80m
+    name: httpLatencyRamp
+    spec:
+      type: ramp
+      target: 1.0
+      duration: 8m
+
+  - type: metricGenerator
+    at: 80m
+    name: httpErrorRamp
+    spec:
+      type: ramp
+      target: 50
+      duration: 8m
+
+  - type: metricGenerator
+    at: 80m
+    name: dbCpuRamp
+    spec:
+      type: ramp
+      target: 95
+      duration: 8m
+
+  - type: metricGenerator
+    at: 80m
+    name: commitLatRamp
+    spec:
+      type: ramp
+      target: 0.2
+      duration: 8m
+
+  - type: metricGenerator
+    at: 80m
+    name: deadlockRamp
+    spec:
+      type: ramp
+      target: 5
+      duration: 8m
+
+  #—— Recovery at 88 m ———————————————————————————————————————————————
+  - type: metricGenerator
+    at: 100m
+    name: podCpuRamp
+    spec:
+      type: ramp
+      target: 0.1
+      duration: 10s
+
+  - type: metricGenerator
+    at: 100m
+    name: httpLatencyRamp
+    spec:
+      type: ramp
+      target: 0.1
+      duration: 10s
+
+  - type: metricGenerator
+    at: 100m
+    name: httpErrorRamp
+    spec:
+      type: ramp
+      target: 0
+      duration: 10s
+
+  - type: metricGenerator
+    at: 100m
+    name: dbCpuRamp
+    spec:
+      type: ramp
+      target: 10
+      duration: 10s
+
+  - type: metricGenerator
+    at: 100m
+    name: commitLatRamp
+    spec:
+      type: ramp
+      target: 0.025
+      duration: 10s
+
+  - type: metricGenerator
+    at: 100m
+    name: deadlockRamp
+    spec:
+      type: ramp
+      target: 0
+      duration: 10s
