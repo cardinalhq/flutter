@@ -42,6 +42,19 @@ type Script struct {
 	Duration   time.Duration
 }
 
+func Simulate(cfg *config.Config) error {
+	s, err := makeRunningConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("error creating running config: %w", err)
+	}
+
+	httpClient := &http.Client{
+		Timeout: cfg.OTLPDestination.Timeout,
+	}
+
+	return run(cfg, s, httpClient)
+}
+
 func makeRunningConfig(cfg *config.Config) (*Script, error) {
 	rc := Script{
 		Script:     cfg.Script,
@@ -84,19 +97,6 @@ func makeRunningConfig(cfg *config.Config) (*Script, error) {
 	}
 
 	return &rc, nil
-}
-
-func Simulate(cfg *config.Config) error {
-	s, err := makeRunningConfig(cfg)
-	if err != nil {
-		return fmt.Errorf("error creating running config: %w", err)
-	}
-
-	httpClient := &http.Client{
-		Timeout: cfg.OTLPDestination.Timeout,
-	}
-
-	return run(cfg, s, httpClient)
 }
 
 func run(cfg *config.Config, rc *Script, client *http.Client) error {

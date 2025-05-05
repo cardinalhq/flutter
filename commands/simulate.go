@@ -44,5 +44,4 @@ func Simulate(args []string) error {
 	}
 
 	return script.Simulate(cfg)
-
 }
