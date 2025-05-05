@@ -1,0 +1,106 @@
+{
+  "metrics": [
+    {
+      "name": "spanmetrics.http_requests_sent",
+      "type": "sum",
+      "resourceAttributes": {
+        "service.name": "checkoutservice",
+        "k8s.namespace.name": "chq-demo-apps",
+        "k8s.cluster.name": "test-cluster"
+      },
+      "variants": [
+        {
+          "attributes": {
+            "http.request.method": "POST",
+            "url.template": "http://paymentservice.chq-demo-apps.svc.cluster.local:9095/process-payment",
+            "http.response.status_code": 200,
+            "has_error": false
+          },
+          "timeline": [
+            {
+              "start_ts": 0,
+              "end_ts": 1800,
+              "median": 100
+            },
+            {
+              "start_ts": 1800,
+              "end_ts": 2400,
+              "median": 150
+            },
+            {
+              "start_ts": 2400,
+              "end_ts": 2460,
+              "median": 100
+            }
+          ]
+        },
+        {
+          "attributes": {
+            "http.request.method": "POST",
+            "url.template": "http://paymentservice.chq-demo-apps.svc.cluster.local:9095/process-payment",
+            "http.response.status_code": 500,
+            "has_error": true
+          },
+          "timeline": [
+            {
+              "start_ts": 1800,
+              "end_ts": 2400,
+              "median": 200
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "spanmetrics.http_requests_received",
+      "type": "sum",
+      "resourceAttributes": {
+        "service.name": "paymentservice",
+        "k8s.namespace.name": "chq-demo-apps",
+        "k8s.cluster.name": "test-cluster"
+      },
+      "variants": [
+        {
+          "attributes": {
+            "http.request.method": "POST",
+            "url.template": "/process-payment",
+            "http.response.status_code": 200,
+            "has_error": false
+          },
+          "timeline": [
+            {
+              "start_ts": 0,
+              "end_ts": 1800,
+              "median": 100
+            },
+            {
+              "start_ts": 1800,
+              "end_ts": 2400,
+              "median": 150
+            },
+            {
+              "start_ts": 2400,
+              "end_ts": 2460,
+              "median": 100
+            }
+          ]
+        },
+        {
+          "attributes": {
+            "http.request.method": "POST",
+            "url.template": "/process-payment",
+            "http.response.status_code": 500,
+            "has_error": true
+          },
+          "timeline": [
+            {
+              "start_ts": 1800,
+              "end_ts": 2400,
+              "median": 200
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

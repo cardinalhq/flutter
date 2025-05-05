@@ -15,6 +15,7 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"time"
 
@@ -52,6 +53,7 @@ func LoadConfigs(fnames []string) (*Config, error) {
 		},
 	}
 	for _, fname := range fnames {
+		slog.Info("Loading config", "file", fname)
 		config, err := loadConfig(fname)
 		if err != nil {
 			return nil, err
@@ -90,9 +92,6 @@ func loadConfig(fname string) (*Config, error) {
 	if err := LoadYAML(fname, &config); err != nil {
 		return nil, err
 	}
-	if config.Duration == 0 {
-		config.Duration = 1000
-	}
 	if config.OTLPDestination.Timeout == 0 {
 		config.OTLPDestination.Timeout = 5 * time.Second
 	}
@@ -105,4 +104,12 @@ func LoadYAML(fname string, config *Config) error {
 		return err
 	}
 	return yaml.Unmarshal(b, config)
+}
+
+func MarshalYAML(config *Config) ([]byte, error) {
+	b, err := yaml.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }

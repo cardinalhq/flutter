@@ -17,6 +17,8 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -24,23 +26,81 @@ import (
 	"github.com/cardinalhq/flutter/internal/script"
 )
 
+var (
+	// these will hold all --config and --timeline values
+	configPaths   []string
+	timelineFiles []string
+	dumpConfig    bool
+	dryrun        bool
+)
+
+func init() {
+	// --config / -c can be specified multiple times
+	SimulateCmd.Flags().
+		StringArrayVarP(&configPaths, "config", "c", nil, "Configuration file(s) to load (repeatable)")
+
+	// --timeline / -t can be specified multiple times
+	SimulateCmd.Flags().
+		StringArrayVarP(&timelineFiles, "timeline", "t", nil, "Timeline file(s) to parse (repeatable)")
+
+	// --dump-config will dump the merged config to stdout
+	SimulateCmd.Flags().
+		BoolVar(&dumpConfig, "dump-config", false, "Dump the merged config to stdout and exit")
+
+	// --dryrun will not actually run the simulation
+	SimulateCmd.Flags().
+		BoolVar(&dryrun, "dryrun", false, "Do not actually run the simulation")
+
+	// require at least one config
+	_ = SimulateCmd.MarkFlagRequired("config")
+}
+
 var SimulateCmd = &cobra.Command{
 	Use:   "simulate",
 	Short: "Simulate a load test",
-	Long:  `Simulate a load test using the provided configuration files.`,
-	RunE: func(_ *cobra.Command, args []string) error {
-		if len(args) < 1 {
-			return errors.New("no config files provided")
-		}
-		return Simulate(args)
+	Long:  `Simulate a load test using the provided configuration and optional timeline files.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runSimulate(configPaths, timelineFiles)
 	},
 }
 
-func Simulate(args []string) error {
-	// load the config files in order, merging as we go
-	cfg, err := config.LoadConfigs(args)
+func runSimulate(configs, timelines []string) error {
+	if len(configs) == 0 {
+		return errors.New("no --config files provided")
+	}
+
+	// load and merge all config files in order
+	cfg, err := config.LoadConfigs(configs)
 	if err != nil {
 		return fmt.Errorf("error loading config files: %w", err)
+	}
+
+	for _, timeline := range timelines {
+		slog.Info("Loading timeline file", "file", timeline)
+		b, err := os.ReadFile(timeline)
+		if err != nil {
+			return fmt.Errorf("error reading timeline file %q: %w", timeline, err)
+		}
+		tl, err := script.ParseTimeline(b)
+		if err != nil {
+			return fmt.Errorf("error parsing timeline file %q: %w", timeline, err)
+		}
+		if err := tl.MergeIntoConfig(cfg); err != nil {
+			return fmt.Errorf("error merging timeline into config: %w", err)
+		}
+	}
+
+	if dumpConfig {
+		b, err := config.MarshalYAML(cfg)
+		if err != nil {
+			return fmt.Errorf("error marshalling config to YAML: %w", err)
+		}
+		fmt.Println(string(b))
+		return nil
+	}
+
+	if dryrun {
+		cfg.Dryrun = true
 	}
 
 	return script.Simulate(cfg)

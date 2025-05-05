@@ -103,6 +103,8 @@ func TestInterpolate(t *testing.T) {
 		startAt  time.Duration
 		now      time.Duration
 		duration time.Duration
+		preZero  bool
+		postZero bool
 		expected float64
 	}{
 		{
@@ -172,7 +174,7 @@ func TestInterpolate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := intrerpolate(tt.start, tt.target, tt.startAt, tt.now, tt.duration)
+			result := intrerpolate(tt.start, tt.target, tt.startAt, tt.now, tt.duration, tt.preZero, tt.postZero)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

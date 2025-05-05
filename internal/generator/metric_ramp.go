@@ -27,6 +27,8 @@ type MetricRampSpec struct {
 	Start               float64       `mapstructure:"start" yaml:"start" json:"start"`
 	Target              float64       `mapstructure:"target" yaml:"target" json:"target"`
 	Duration            time.Duration `mapstructure:"duration" yaml:"duration" json:"duration"`
+	PrestartZero        bool          `mapstructure:"prestart_zero" yaml:"prestart_zero" json:"prestart_zero"`
+	PostEndZero         bool          `mapstructure:"postend_zero" yaml:"postend_zero" json:"postend_zero"`
 }
 
 type MetricRamp struct {
@@ -83,7 +85,8 @@ func (m *MetricRamp) Reconfigure(at time.Duration, is map[string]any) error {
 		oldAt,
 		at,
 		oldSpec.Duration,
-	)
+		oldSpec.PrestartZero,
+		oldSpec.PostEndZero)
 
 	m.spec = newSpec
 	m.spec.Start = current
@@ -93,21 +96,30 @@ func (m *MetricRamp) Reconfigure(at time.Duration, is map[string]any) error {
 }
 
 func (m *MetricRamp) Emit(rs *state.RunState, value float64) float64 {
-	v := intrerpolate(m.spec.Start, m.spec.Target, m.at, rs.Now, m.spec.Duration)
+	v := intrerpolate(m.spec.Start, m.spec.Target, m.at, rs.Now, m.spec.Duration, m.spec.PrestartZero, m.spec.PostEndZero)
 	return v + value
 }
 
 // intrerpolate linearly interpolates from start → target over the given duration,
 // beginning at offset startAt, and evaluated at offset at.
-func intrerpolate(start, target float64, startAt, now, duration time.Duration) float64 {
+func intrerpolate(start, target float64, startAt, now, duration time.Duration, preZero, postZero bool) float64 {
 	if duration <= 0 {
+		if preZero {
+			return 0
+		}
 		return target
 	}
 	elapsed := now - startAt
 	if elapsed <= 0 {
+		if preZero {
+			return 0
+		}
 		return start
 	}
 	if elapsed >= duration {
+		if postZero {
+			return 0
+		}
 		return target
 	}
 	frac := float64(elapsed) / float64(duration)

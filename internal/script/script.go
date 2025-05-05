@@ -141,7 +141,7 @@ func run(cfg *config.Config, rc *Script, client *http.Client) error {
 					}
 					metric, err := exporters.CreateMetricExporter(rc.Generators, action.Name, action)
 					if err != nil {
-						return fmt.Errorf("error creating metric exporter: %s", action.Name)
+						return fmt.Errorf("error creating metric exporter: %v", err)
 					}
 					rc.Exporters[action.Name] = metric
 				}

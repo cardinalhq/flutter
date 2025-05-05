@@ -45,6 +45,11 @@ type MetricExporterSpec struct {
 	lastEmitted time.Duration
 }
 
+const (
+	// DefaultFrequency is the default frequency for metric exporters.
+	DefaultFrequency = 10 * time.Second
+)
+
 func CreateMetricExporter(generators map[string]generator.MetricGenerator, name string, mes config.ScriptAction) (MetricExporter, error) {
 	exporterTypeAny, ok := mes.Spec["type"]
 	if !ok {
@@ -58,8 +63,10 @@ func CreateMetricExporter(generators map[string]generator.MetricGenerator, name 
 	switch exporterType {
 	case "gauge":
 		return NewMetricGauge(generators, name, mes.Spec)
+	case "sum":
+		return NewMetricSum(generators, name, mes.Spec)
 	default:
-		return nil, errors.New("unknown metric exporter type: " + mes.Type)
+		return nil, errors.New("unknown metric exporter type: " + exporterType)
 	}
 }
 

@@ -39,8 +39,8 @@ func TestParseTimeline(t *testing.T) {
 							"attributes": {
 								"http.request.method": "POST",
 								"url.template": "http://paymentservice.chq-demo-apps.svc.cluster.local:9095/process-payment",
-								"http.response.status_code": "200",
-								"has_error": "false"
+								"http.response.status_code": 200,
+								"has_error": false
 							},
 							"timeline": [
 								{
@@ -64,8 +64,8 @@ func TestParseTimeline(t *testing.T) {
 							"attributes": {
 								"http.request.method": "POST",
 								"url.template": "http://paymentservice.chq-demo-apps.svc.cluster.local:9095/process-payment",
-								"http.response.status_code": "500",
-								"has_error": "true"
+								"http.response.status_code": 500,
+								"has_error": true
 							},
 							"timeline": [
 								{
@@ -90,8 +90,8 @@ func TestParseTimeline(t *testing.T) {
 							"attributes": {
 								"http.request.method": "POST",
 								"url.template": "/process-payment",
-								"http.response.status_code": "200",
-								"has_error": "false"
+								"http.response.status_code": 200,
+								"has_error": false
 							},
 							"timeline": [
 								{
@@ -115,8 +115,8 @@ func TestParseTimeline(t *testing.T) {
 							"attributes": {
 								"http.request.method": "POST",
 								"url.template": "/process-payment",
-								"http.response.status_code": "500",
-								"has_error": "true"
+								"http.response.status_code": 500,
+								"has_error": true
 							},
 							"timeline": [
 								{

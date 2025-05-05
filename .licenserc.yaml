@@ -12,6 +12,7 @@ header:
     - '**/testdata/**'
     - '**/*.md'
     - '**/*.yaml'
+    - '**/*.json'
     - .licenserc.yaml
     - 'LICENSE'
     - 'NOTICE'
