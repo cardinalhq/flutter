@@ -134,7 +134,7 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 					Start:        prevStart,
 					Target:       dp.Median,
 					Duration:     duration,
-					PrestartZero: true,
+					PrestartZero: i != 0,
 					PostEndZero:  i > 0 && i != dpCount-1,
 				}),
 			}
