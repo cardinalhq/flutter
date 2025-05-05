@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
-	"time"
 
 	"github.com/cespare/xxhash/v2"
 
@@ -33,11 +32,11 @@ type Timeline struct {
 }
 
 type Metric struct {
-	Name               string         `json:"name"`
-	Type               string         `json:"type"`
-	Frequency          time.Duration  `json:"frequency,omitempty"` // optional, defaults to DefaultFrequency (10s)
-	ResourceAttributes map[string]any `json:"resourceAttributes"`
-	Variants           []Variant      `json:"variants"`
+	Name               string          `json:"name"`
+	Type               string          `json:"type"`
+	Frequency          config.Duration `json:"frequency,omitempty"` // optional, defaults to DefaultFrequency (10s)
+	ResourceAttributes map[string]any  `json:"resourceAttributes"`
+	Variants           []Variant       `json:"variants"`
 }
 
 type Variant struct {
@@ -46,10 +45,10 @@ type Variant struct {
 }
 
 type Segment struct {
-	StartTs int64   `json:"start_ts"`
-	EndTs   int64   `json:"end_ts"`
-	Start   float64 `json:"start,omitempty"` // optional
-	Median  float64 `json:"median"`
+	StartTs config.Duration `json:"start_ts"`
+	EndTs   config.Duration `json:"end_ts"`
+	Start   float64         `json:"start,omitempty"` // optional
+	Median  float64         `json:"median"`
 }
 
 func ParseTimeline(b []byte) (*Timeline, error) {
@@ -73,14 +72,14 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 	for _, variant := range metric.Variants {
 		id := makeID(metric, variant)
 		frequency := metric.Frequency
-		if frequency == 0 {
-			frequency = exporters.DefaultFrequency
+		if frequency.Get() == 0 {
+			frequency = config.Duration{Duration: exporters.DefaultFrequency}
 		}
 		generators := []string{
 			id + "_noise",
 		}
 		for _, dp := range variant.Timeline {
-			generators = append(generators, id+"_ramp_"+strconv.FormatInt(dp.StartTs, 10))
+			generators = append(generators, id+"_ramp_"+strconv.FormatInt(dp.StartTs.Milliseconds(), 10))
 		}
 		// Add the metric to the config
 		action := config.ScriptAction{
@@ -90,7 +89,7 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 				MetricExporterSpec: exporters.MetricExporterSpec{
 					Name:      metric.Name,
 					Type:      metric.Type,
-					Frequency: frequency,
+					Frequency: frequency.Get(),
 					Attributes: exporters.Attributes{
 						Resource:  metric.ResourceAttributes,
 						Datapoint: variant.Attributes,
@@ -119,16 +118,16 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 		prevStart := float64(0)
 		for _, dp := range variant.Timeline {
 			action = config.ScriptAction{
-				Name: id + "_ramp_" + strconv.FormatInt(dp.StartTs, 10),
+				Name: id + "_ramp_" + strconv.FormatInt(dp.StartTs.Milliseconds(), 10),
 				Type: "metricGenerator",
-				At:   time.Duration(dp.StartTs) * time.Second,
+				At:   dp.StartTs.Get(),
 				Spec: specToMap(generator.MetricRampSpec{
 					MetricGeneratorSpec: generator.MetricGeneratorSpec{
 						Type: "ramp",
 					},
 					Start:        prevStart,
 					Target:       dp.Median,
-					Duration:     time.Duration(dp.EndTs-dp.StartTs) * time.Second,
+					Duration:     dp.EndTs.Get() - dp.StartTs.Get(),
 					PrestartZero: true,
 					PostEndZero:  true,
 				}),
