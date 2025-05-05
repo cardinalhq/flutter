@@ -42,10 +42,10 @@ type Metric struct {
 
 type Variant struct {
 	Attributes map[string]any `json:"attributes"`
-	Timeline   []DataPoint    `json:"timeline"`
+	Timeline   []Segment      `json:"timeline"`
 }
 
-type DataPoint struct {
+type Segment struct {
 	StartTs int64   `json:"start_ts"`
 	EndTs   int64   `json:"end_ts"`
 	Start   float64 `json:"start,omitempty"` // optional
