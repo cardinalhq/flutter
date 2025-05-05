@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/cespare/xxhash/v2"
 
@@ -78,8 +79,8 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 		generators := []string{
 			id + "_noise",
 		}
-		for _, dp := range variant.Timeline {
-			generators = append(generators, id+"_ramp_"+strconv.FormatInt(dp.StartTs.Milliseconds(), 10))
+		for i := range len(variant.Timeline) {
+			generators = append(generators, id+"_ramp_"+strconv.Itoa(i))
 		}
 		// Add the metric to the config
 		action := config.ScriptAction{
@@ -116,9 +117,14 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 
 		// Add the timeline to the config
 		prevStart := float64(0)
-		for _, dp := range variant.Timeline {
+		dpCount := len(variant.Timeline)
+		for i, dp := range variant.Timeline {
+			duration := dp.EndTs.Get() - dp.StartTs.Get()
+			if duration <= 0 {
+				duration = time.Second
+			}
 			action = config.ScriptAction{
-				Name: id + "_ramp_" + strconv.FormatInt(dp.StartTs.Milliseconds(), 10),
+				Name: id + "_ramp_" + strconv.Itoa(i),
 				Type: "metricGenerator",
 				At:   dp.StartTs.Get(),
 				Spec: specToMap(generator.MetricRampSpec{
@@ -127,9 +133,9 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 					},
 					Start:        prevStart,
 					Target:       dp.Median,
-					Duration:     dp.EndTs.Get() - dp.StartTs.Get(),
+					Duration:     duration,
 					PrestartZero: true,
-					PostEndZero:  true,
+					PostEndZero:  i > 0 && i != dpCount-1,
 				}),
 			}
 			prevStart = dp.Median
