@@ -184,6 +184,7 @@ If a constant is desired, variation can be set to 0, which will clamp to the tar
 
 ```yaml
 spec:
+  type: randomWalk
   target: 0
   elasticity: 0.2
   stepSize: 2
@@ -221,6 +222,7 @@ spec:
 
 ```yaml
 spec:
+  type: spikyNoise
   pStart: 0.05
   pEnd: 0.2
   peakTarget: 15
