@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -32,6 +33,8 @@ var (
 	timelineFiles []string
 	dumpConfig    bool
 	dryrun        bool
+	from          time.Duration
+	emitJson      bool
 )
 
 func init() {
@@ -50,6 +53,14 @@ func init() {
 	// --dryrun will not actually run the simulation
 	SimulateCmd.Flags().
 		BoolVar(&dryrun, "dryrun", false, "Do not actually run the simulation")
+
+	// --from will set the start time for the simulation
+	SimulateCmd.Flags().
+		DurationVar(&from, "from", 0, "Start time for the simulation (default: now)")
+
+		// --json will show the output timeline in JSON format
+	SimulateCmd.Flags().
+		BoolVar(&emitJson, "json", false, "Dump the timeline in JSON format")
 
 	// require at least one config
 	_ = SimulateCmd.MarkFlagRequired("config")
@@ -99,9 +110,8 @@ func runSimulate(configs, timelines []string) error {
 		return nil
 	}
 
-	if dryrun {
-		cfg.Dryrun = true
-	}
+	cfg.Dryrun = cfg.Dryrun || dryrun
+	cfg.DumpJSON = emitJson
 
-	return script.Simulate(cfg)
+	return script.Simulate(cfg, from)
 }

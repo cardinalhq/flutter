@@ -16,7 +16,10 @@ package script
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -42,7 +45,7 @@ type Script struct {
 	Duration   time.Duration
 }
 
-func Simulate(cfg *config.Config) error {
+func Simulate(cfg *config.Config, from time.Duration) error {
 	s, err := makeRunningConfig(cfg)
 	if err != nil {
 		return fmt.Errorf("error creating running config: %w", err)
@@ -52,7 +55,7 @@ func Simulate(cfg *config.Config) error {
 		Timeout: cfg.OTLPDestination.Timeout,
 	}
 
-	return run(cfg, s, httpClient)
+	return run(cfg, s, httpClient, from)
 }
 
 func makeRunningConfig(cfg *config.Config) (*Script, error) {
@@ -99,7 +102,7 @@ func makeRunningConfig(cfg *config.Config) (*Script, error) {
 	return &rc, nil
 }
 
-func run(cfg *config.Config, rc *Script, client *http.Client) error {
+func run(cfg *config.Config, rc *Script, client *http.Client, from time.Duration) error {
 	seed := cfg.Seed
 	if seed == 0 {
 		seed = uint64(time.Now().UnixNano())
@@ -117,7 +120,7 @@ func run(cfg *config.Config, rc *Script, client *http.Client) error {
 	for now := range seconds + 1 {
 		rs.Now = time.Duration(now) * time.Second
 		rs.Wallclock = starttime.Add(rs.Now)
-		if !cfg.Dryrun {
+		if !cfg.Dryrun && rs.Now >= from {
 			fmt.Printf("TICK! %d, %s\r", now, rs.Wallclock.Format(time.RFC3339))
 		}
 		if len(rc.Script) > rs.CurrentAction {
@@ -161,9 +164,17 @@ func run(cfg *config.Config, rc *Script, client *http.Client) error {
 		}
 		mm := mb.Build()
 
-		if !cfg.Dryrun && cfg.OTLPDestination.Endpoint != "" {
+		shouldEmit := rs.Now >= from && !cfg.Dryrun
+
+		if shouldEmit && cfg.OTLPDestination.Endpoint != "" {
 			if err := sendOTLPMetric(context.Background(), client, cfg.OTLPDestination.Headers, mm, cfg.OTLPDestination.Endpoint); err != nil {
 				slog.Warn("failed to send OTLP metrics", "error", err)
+			}
+		}
+
+		if rs.Now >= from && cfg.DumpJSON {
+			if err := dumpJSONMetric(rs, mm); err != nil {
+				return fmt.Errorf("error dumping JSON metrics: %w", err)
 			}
 		}
 
@@ -210,4 +221,54 @@ func sendOTLPMetric(ctx context.Context, client *http.Client, headers map[string
 	}
 
 	return nil
+}
+
+type jsonWrapper struct {
+	Timestamp       time.Time       `json:"timestamp"`
+	MetricsProtobuf string          `json:"metricsProtobuf"`
+	At              config.Duration `json:"at"`
+}
+
+func dumpJSONMetric(rs *state.RunState, md pmetric.Metrics) error {
+	if md.MetricCount() == 0 {
+		return nil
+	}
+
+	marshaller := pmetric.ProtoMarshaler{}
+
+	j := jsonWrapper{
+		Timestamp: rs.Wallclock,
+		At:        config.Duration{Duration: rs.Now},
+	}
+
+	msgBody, err := marshaller.MarshalMetrics(md)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metrics: %w", err)
+	}
+
+	msgBody, err = gzipBytes(msgBody)
+	if err != nil {
+		return fmt.Errorf("failed to gzip metrics: %w", err)
+	}
+	j.MetricsProtobuf = base64.StdEncoding.EncodeToString(msgBody)
+
+	jsonData, err := json.Marshal(j)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	fmt.Println(string(jsonData))
+	return nil
+}
+
+func gzipBytes(data []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	w := gzip.NewWriter(&buf)
+	if _, err := w.Write(data); err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }

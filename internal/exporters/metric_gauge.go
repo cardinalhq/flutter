@@ -17,7 +17,6 @@ package exporters
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/cardinalhq/oteltools/signalbuilder"
@@ -121,8 +120,6 @@ func (m *MetricGauge) Emit(generators map[string]generator.MetricGenerator, stat
 
 	dp, _, _ := mm.Datapoint(dattr, pcommon.NewTimestampFromTime(state.Wallclock))
 	dp.SetDoubleValue(value)
-
-	slog.Info("MetricGauge Emit", slog.Duration("ts", state.Now), slog.String("metricName", m.spec.Name), slog.Float64("value", value))
 
 	return nil
 }

@@ -31,6 +31,7 @@ type Config struct {
 	Script          []ScriptAction  `mapstructure:"script" yaml:"script" json:"script"`
 	Dryrun          bool            `mapstructure:"dryrun" yaml:"dryrun" json:"dryrun"`
 	OTLPDestination OTLPDestination `mapstructure:"otlpDestination" yaml:"otlpDestination" json:"otlpDestination"`
+	DumpJSON        bool            `mapstructure:"dumpJSON" yaml:"dumpJSON" json:"dumpJSON"`
 }
 
 type OTLPDestination struct {
