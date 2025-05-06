@@ -56,7 +56,6 @@ func NewMetricGauge(generators map[string]generator.MetricGenerator, name string
 		return nil, fmt.Errorf("failed to create decoder: %w", err)
 	}
 	if err := decoder.Decode(spec); err != nil {
-		// if there are unknown fields, err will mention them
 		return nil, fmt.Errorf("unable to decode MetricGaugeSpec for %q: %w", name, err)
 	}
 
