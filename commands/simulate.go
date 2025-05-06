@@ -25,6 +25,7 @@ import (
 
 	"github.com/cardinalhq/flutter/internal/config"
 	"github.com/cardinalhq/flutter/internal/script"
+	"github.com/cardinalhq/flutter/pkg/timeline"
 )
 
 var (
@@ -86,17 +87,17 @@ func runSimulate(configs, timelines []string) error {
 		return fmt.Errorf("error loading config files: %w", err)
 	}
 
-	for _, timeline := range timelines {
-		slog.Info("Loading timeline file", "file", timeline)
-		b, err := os.ReadFile(timeline)
+	for _, tl := range timelines {
+		slog.Info("Loading timeline file", "file", tl)
+		b, err := os.ReadFile(tl)
 		if err != nil {
-			return fmt.Errorf("error reading timeline file %q: %w", timeline, err)
+			return fmt.Errorf("error reading timeline file %q: %w", tl, err)
 		}
-		tl, err := script.ParseTimeline(b)
+		ptl, err := timeline.ParseTimeline(b)
 		if err != nil {
-			return fmt.Errorf("error parsing timeline file %q: %w", timeline, err)
+			return fmt.Errorf("error parsing timeline file %q: %w", tl, err)
 		}
-		if err := tl.MergeIntoConfig(cfg); err != nil {
+		if err := ptl.MergeIntoConfig(cfg); err != nil {
 			return fmt.Errorf("error merging timeline into config: %w", err)
 		}
 	}
