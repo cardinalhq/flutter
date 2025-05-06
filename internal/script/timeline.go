@@ -46,7 +46,7 @@ type Variant struct {
 }
 
 type Segment struct {
-	StartTs config.Duration `json:"start_ts"`
+	StartTs config.Duration `json:"start_ts"` // optional on segments other than first
 	EndTs   config.Duration `json:"end_ts"`
 	Start   float64         `json:"start,omitempty"` // optional
 	Median  float64         `json:"median"`
@@ -74,8 +74,13 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 		id := makeID(metric, variant)
 		frequency := getFrequency(metric.Frequency)
 		generators := generateGeneratorIDs(id, len(variant.Timeline))
+		if len(variant.Timeline) == 0 {
+			return nil
+		}
+		firstAt := variant.Timeline[0].StartTs.Get()
+		lastAt := variant.Timeline[len(variant.Timeline)-1].EndTs.Get()
 
-		if err := addMetricToConfig(cfg, id, metric, variant, frequency, generators); err != nil {
+		if err := addMetricToConfig(cfg, id, metric, variant, frequency, generators, firstAt, lastAt); err != nil {
 			return err
 		}
 
@@ -99,14 +104,16 @@ func getFrequency(frequency config.Duration) time.Duration {
 
 func generateGeneratorIDs(id string, timelineLength int) []string {
 	generators := []string{id + "_noise"}
-	for i := 0; i < timelineLength; i++ {
+	for i := range timelineLength {
 		generators = append(generators, id+"_ramp_"+strconv.Itoa(i))
 	}
 	return generators
 }
 
-func addMetricToConfig(cfg *config.Config, id string, metric Metric, variant Variant, frequency time.Duration, generators []string) error {
+func addMetricToConfig(cfg *config.Config, id string, metric Metric, variant Variant, frequency time.Duration, generators []string, startAt, endAt time.Duration) error {
 	action := config.ScriptAction{
+		At:   startAt,
+		To:   endAt,
 		Name: id,
 		Type: "metric",
 		Spec: specToMap(exporters.MetricGaugeSpec{
@@ -143,32 +150,35 @@ func addNoiseGenerator(cfg *config.Config, id string) error {
 }
 
 func addTimelineToConfig(cfg *config.Config, id string, timeline []Segment) error {
-	prevStart := float64(0)
-	dpCount := len(timeline)
-	if dpCount > 0 {
-		prevStart = timeline[0].Median
+	if len(timeline) == 0 {
+		return nil
 	}
+
+	startAt := timeline[0].StartTs.Get()
+	startValue := timeline[0].Start
+	dpCount := len(timeline)
 	for i, dp := range timeline {
-		duration := dp.EndTs.Get() - dp.StartTs.Get()
+		duration := dp.EndTs.Get() - startAt
 		if duration <= 0 {
 			duration = time.Second
 		}
 		action := config.ScriptAction{
 			Name: id + "_ramp_" + strconv.Itoa(i),
 			Type: "metricGenerator",
-			At:   dp.StartTs.Get(),
+			At:   startAt,
 			Spec: specToMap(generator.MetricRampSpec{
 				MetricGeneratorSpec: generator.MetricGeneratorSpec{
 					Type: "ramp",
 				},
-				Start:        prevStart,
+				Start:        startValue,
 				Target:       dp.Median,
 				Duration:     duration,
 				PrestartZero: i != 0,
 				PostEndZero:  i > 0 && i != dpCount-1,
 			}),
 		}
-		prevStart = dp.Median
+		startValue = dp.Median
+		startAt = dp.EndTs.Get()
 		cfg.Script = append(cfg.Script, action)
 	}
 	return nil

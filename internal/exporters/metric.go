@@ -36,6 +36,7 @@ type Attributes struct {
 }
 
 type MetricExporterSpec struct {
+	To         time.Duration `mapstructure:"to" yaml:"to" json:"to"`
 	Attributes Attributes    `mapstructure:"attributes" yaml:"attributes" json:"attributes"`
 	Generators []string      `mapstructure:"generators" yaml:"generators" json:"generators"`
 	Frequency  time.Duration `mapstructure:"frequency" yaml:"frequency" json:"frequency"`
@@ -62,9 +63,9 @@ func CreateMetricExporter(generators map[string]generator.MetricGenerator, name 
 
 	switch exporterType {
 	case "gauge":
-		return NewMetricGauge(generators, name, mes.Spec)
+		return NewMetricGauge(generators, name, mes.To, mes.Spec)
 	case "sum":
-		return NewMetricSum(generators, name, mes.Spec)
+		return NewMetricSum(generators, name, mes.To, mes.Spec)
 	default:
 		return nil, errors.New("unknown metric exporter type: " + exporterType)
 	}

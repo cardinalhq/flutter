@@ -39,11 +39,12 @@ type MetricGauge struct {
 
 var _ MetricExporter = (*MetricGauge)(nil)
 
-func NewMetricGauge(generators map[string]generator.MetricGenerator, name string, spec map[string]any) (*MetricGauge, error) {
+func NewMetricGauge(generators map[string]generator.MetricGenerator, name string, to time.Duration, spec map[string]any) (*MetricGauge, error) {
 	gaugeSpec := MetricGaugeSpec{
 		MetricExporterSpec: MetricExporterSpec{
-			Frequency: 10 * time.Second,
+			Frequency: DefaultFrequency,
 			Name:      name,
+			To:        to,
 		},
 	}
 	if name == "" {
@@ -86,6 +87,9 @@ func (m *MetricGauge) Reconfigure(generators map[string]generator.MetricGenerato
 }
 
 func (m *MetricGauge) Emit(generators map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error {
+	if !shouldEmitMetric(state, m.spec.To) {
+		return nil
+	}
 	if state.Now < m.spec.lastEmitted+m.spec.Frequency {
 		return nil
 	}

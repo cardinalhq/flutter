@@ -42,6 +42,7 @@ type OTLPDestination struct {
 
 type ScriptAction struct {
 	At   time.Duration  `mapstructure:"at" yaml:"at" json:"at"`
+	To   time.Duration  `mapstructure:"to" yaml:"to" json:"to"`
 	Name string         `mapstructure:"name" yaml:"name" json:"name"`
 	Type string         `mapstructure:"type" yaml:"type" json:"type"`
 	Spec map[string]any `mapstructure:"spec" yaml:"spec" json:"spec"`

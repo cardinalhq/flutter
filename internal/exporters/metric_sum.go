@@ -39,11 +39,12 @@ type MetricSum struct {
 
 var _ MetricExporter = (*MetricSum)(nil)
 
-func NewMetricSum(generators map[string]generator.MetricGenerator, name string, spec map[string]any) (*MetricSum, error) {
+func NewMetricSum(generators map[string]generator.MetricGenerator, name string, to time.Duration, spec map[string]any) (*MetricSum, error) {
 	SumSpec := MetricSumSpec{
 		MetricExporterSpec: MetricExporterSpec{
-			Frequency: 10 * time.Second,
+			Frequency: DefaultFrequency,
 			Name:      name,
+			To:        to,
 		},
 	}
 	if name == "" {
@@ -85,7 +86,14 @@ func (m *MetricSum) Reconfigure(generators map[string]generator.MetricGenerator,
 	return nil
 }
 
+func shouldEmitMetric(state *state.RunState, to time.Duration) bool {
+	return to == 0 || state.Now <= to
+}
+
 func (m *MetricSum) Emit(generators map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error {
+	if !shouldEmitMetric(state, m.spec.To) {
+		return nil
+	}
 	if state.Now < m.spec.lastEmitted+m.spec.Frequency {
 		return nil
 	}
