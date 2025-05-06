@@ -20,17 +20,15 @@
             {
               "end_ts": "30m",
               "start": 100,
-              "median": 100
+              "target": 100
             },
             {
-              "start_ts": "30m",
               "end_ts": "40m",
-              "median": 150
+              "target": 150
             },
             {
-              "start_ts": "40m",
               "end_ts": "40m",
-              "median": 100
+              "target": 100
             }
           ]
         },
@@ -46,7 +44,7 @@
               "start_ts": "30m",
               "end_ts": "40m",
               "start": 200,
-              "median": 200
+              "target": 200
             }
           ]
         }
@@ -72,17 +70,15 @@
             {
               "end_ts": "30m",
               "start": 100,
-              "median": 100
+              "target": 100
             },
             {
-              "start_ts": "30m",
               "end_ts": "40m",
-              "median": 150
+              "target": 150
             },
             {
-              "start_ts": "40m",
               "end_ts": "40m",
-              "median": 100
+              "target": 100
             }
           ]
         },
@@ -98,7 +94,7 @@
               "start_ts": "30m",
               "end_ts": "40m",
               "start": 200,
-              "median": 200
+              "target": 200
             }
           ]
         }
