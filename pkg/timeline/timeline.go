@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package script
+package timeline
 
 import (
 	"encoding/json"
@@ -49,7 +49,7 @@ type Segment struct {
 	StartTs config.Duration `json:"start_ts"` // optional on segments other than first
 	EndTs   config.Duration `json:"end_ts"`
 	Start   float64         `json:"start,omitempty"` // optional
-	Median  float64         `json:"median"`
+	Target  float64         `json:"target"`
 }
 
 func ParseTimeline(b []byte) (*Timeline, error) {
@@ -171,13 +171,13 @@ func addTimelineToConfig(cfg *config.Config, id string, timeline []Segment) erro
 					Type: "ramp",
 				},
 				Start:        startValue,
-				Target:       dp.Median,
+				Target:       dp.Target,
 				Duration:     duration,
 				PrestartZero: i != 0,
 				PostEndZero:  i > 0 && i != dpCount-1,
 			}),
 		}
-		startValue = dp.Median
+		startValue = dp.Target
 		startAt = dp.EndTs.Get()
 		cfg.Script = append(cfg.Script, action)
 	}
