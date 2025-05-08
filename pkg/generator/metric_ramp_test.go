@@ -18,8 +18,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cardinalhq/flutter/pkg/state"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 func TestMetricRamp_Emit(t *testing.T) {

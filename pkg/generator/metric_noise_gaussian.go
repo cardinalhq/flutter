@@ -19,9 +19,10 @@ import (
 	"slices"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/state"
-	"github.com/mitchellh/mapstructure"
 )
 
 // MetricGaussianNoise emits independent normal noise centered on Target.

@@ -16,10 +16,9 @@ package config
 
 import (
 	"log/slog"
+	"maps"
 	"os"
 	"time"
-
-	"maps"
 
 	"gopkg.in/yaml.v3"
 )

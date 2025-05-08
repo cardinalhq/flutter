@@ -18,10 +18,11 @@ import (
 	"errors"
 	"time"
 
+	"github.com/cardinalhq/oteltools/signalbuilder"
+
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/generator"
 	"github.com/cardinalhq/flutter/pkg/state"
-	"github.com/cardinalhq/oteltools/signalbuilder"
 )
 
 type MetricExporter interface {

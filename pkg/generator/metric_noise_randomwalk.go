@@ -18,9 +18,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/state"
-	"github.com/mitchellh/mapstructure"
 )
 
 // MetricRandomWalk emits an additive, mean-reverting noise term.
