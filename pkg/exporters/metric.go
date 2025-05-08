@@ -18,9 +18,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cardinalhq/flutter/internal/config"
-	"github.com/cardinalhq/flutter/internal/generator"
-	"github.com/cardinalhq/flutter/internal/state"
+	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/generator"
+	"github.com/cardinalhq/flutter/pkg/state"
 	"github.com/cardinalhq/oteltools/signalbuilder"
 )
 

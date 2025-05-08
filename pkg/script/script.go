@@ -29,13 +29,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cardinalhq/flutter/internal/config"
-	"github.com/cardinalhq/flutter/internal/exporters"
-	"github.com/cardinalhq/flutter/internal/generator"
-	"github.com/cardinalhq/flutter/internal/state"
 	"github.com/cardinalhq/oteltools/signalbuilder"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/pmetric/pmetricotlp"
+
+	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/exporters"
+	"github.com/cardinalhq/flutter/pkg/generator"
+	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 type Script struct {

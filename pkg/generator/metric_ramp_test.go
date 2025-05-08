@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cardinalhq/flutter/internal/state"
+	"github.com/cardinalhq/flutter/pkg/state"
 	"github.com/stretchr/testify/assert"
 )
 

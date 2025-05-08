@@ -24,9 +24,9 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 
-	"github.com/cardinalhq/flutter/internal/config"
-	"github.com/cardinalhq/flutter/internal/generator"
-	"github.com/cardinalhq/flutter/internal/state"
+	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/generator"
+	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 type MetricGaugeSpec struct {

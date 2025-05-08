@@ -19,8 +19,8 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/cardinalhq/flutter/internal/config"
-	"github.com/cardinalhq/flutter/internal/state"
+	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 type MetricConstantSpec struct {

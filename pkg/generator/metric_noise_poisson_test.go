@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/cardinalhq/flutter/internal/state"
+	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 func TestSamplePoisson(t *testing.T) {

@@ -23,9 +23,9 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 
-	"github.com/cardinalhq/flutter/internal/config"
-	"github.com/cardinalhq/flutter/internal/exporters"
-	"github.com/cardinalhq/flutter/internal/generator"
+	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/exporters"
+	"github.com/cardinalhq/flutter/pkg/generator"
 )
 
 type Timeline struct {
