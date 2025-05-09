@@ -16,8 +16,8 @@ package generator
 
 import (
 	"fmt"
-	"time"
 	"slices"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 

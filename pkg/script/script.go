@@ -34,15 +34,15 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric/pmetricotlp"
 
 	"github.com/cardinalhq/flutter/pkg/config"
-	"github.com/cardinalhq/flutter/pkg/exporters"
 	"github.com/cardinalhq/flutter/pkg/generator"
+	"github.com/cardinalhq/flutter/pkg/metrics"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 type Script struct {
 	Script     []config.ScriptAction
 	Generators map[string]generator.MetricGenerator
-	Exporters  map[string]exporters.MetricExporter
+	Exporters  map[string]metrics.MetricExporter
 	Duration   time.Duration
 }
 
@@ -63,7 +63,7 @@ func makeRunningConfig(cfg *config.Config) (*Script, error) {
 	rc := Script{
 		Script:     cfg.Script,
 		Generators: make(map[string]generator.MetricGenerator),
-		Exporters:  make(map[string]exporters.MetricExporter),
+		Exporters:  make(map[string]metrics.MetricExporter),
 	}
 
 	if len(cfg.Script) == 0 {
@@ -143,7 +143,7 @@ func run(cfg *config.Config, rc *Script, client *http.Client, from time.Duration
 					if ok {
 						return fmt.Errorf("metric exporter already exists: %s", action.Name)
 					}
-					metric, err := exporters.CreateMetricExporter(rc.Generators, action.Name, action)
+					metric, err := metrics.CreateMetricExporter(rc.Generators, action.Name, action)
 					if err != nil {
 						return fmt.Errorf("error creating metric exporter: %v", err)
 					}

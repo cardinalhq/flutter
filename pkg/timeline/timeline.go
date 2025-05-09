@@ -24,8 +24,8 @@ import (
 	"github.com/cespare/xxhash/v2"
 
 	"github.com/cardinalhq/flutter/pkg/config"
-	"github.com/cardinalhq/flutter/pkg/exporters"
 	"github.com/cardinalhq/flutter/pkg/generator"
+	"github.com/cardinalhq/flutter/pkg/metrics"
 )
 
 type Timeline struct {
@@ -77,6 +77,18 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 		if len(variant.Timeline) == 0 {
 			return nil
 		}
+
+		// Ensure the timeline is sorted by start time
+		slices.SortFunc(variant.Timeline, func(a, b Segment) int {
+			if a.StartTs.Get() < b.StartTs.Get() {
+				return -1
+			}
+			if a.StartTs.Get() > b.StartTs.Get() {
+				return 1
+			}
+			return 0
+		})
+
 		firstAt := variant.Timeline[0].StartTs.Get()
 		lastAt := variant.Timeline[len(variant.Timeline)-1].EndTs.Get()
 
@@ -97,7 +109,7 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 
 func getFrequency(frequency config.Duration) time.Duration {
 	if frequency.Get() == 0 {
-		return exporters.DefaultFrequency
+		return metrics.DefaultFrequency
 	}
 	return frequency.Get()
 }
@@ -116,12 +128,12 @@ func addMetricToConfig(cfg *config.Config, id string, metric Metric, variant Var
 		To:   endAt,
 		Name: id,
 		Type: "metric",
-		Spec: specToMap(exporters.MetricGaugeSpec{
-			MetricExporterSpec: exporters.MetricExporterSpec{
+		Spec: specToMap(metrics.MetricGaugeSpec{
+			MetricExporterSpec: metrics.MetricExporterSpec{
 				Name:      metric.Name,
 				Type:      metric.Type,
 				Frequency: frequency,
-				Attributes: exporters.Attributes{
+				Attributes: metrics.Attributes{
 					Resource:  metric.ResourceAttributes,
 					Datapoint: variant.Attributes,
 				},
