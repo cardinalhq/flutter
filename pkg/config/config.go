@@ -27,7 +27,6 @@ type Config struct {
 	Seed            uint64          `mapstructure:"seed" yaml:"seed" json:"seed"`
 	WallclockStart  time.Time       `mapstructure:"wallclockStart" yaml:"wallclockStart" json:"wallclockStart"`
 	Duration        time.Duration   `mapstructure:"duration" yaml:"duration" json:"duration"`
-	Script          []ScriptAction  `mapstructure:"script" yaml:"script" json:"script"`
 	Dryrun          bool            `mapstructure:"dryrun" yaml:"dryrun" json:"dryrun"`
 	OTLPDestination OTLPDestination `mapstructure:"otlpDestination" yaml:"otlpDestination" json:"otlpDestination"`
 }
@@ -36,14 +35,6 @@ type OTLPDestination struct {
 	Endpoint string            `mapstructure:"endpoint" yaml:"endpoint" json:"endpoint"`
 	Headers  map[string]string `mapstructure:"headers" yaml:"headers" json:"headers"`
 	Timeout  time.Duration     `mapstructure:"timeout" yaml:"timeout" json:"timeout"`
-}
-
-type ScriptAction struct {
-	At   time.Duration  `mapstructure:"at" yaml:"at" json:"at"`
-	To   time.Duration  `mapstructure:"to" yaml:"to" json:"to"`
-	Name string         `mapstructure:"name" yaml:"name" json:"name"`
-	Type string         `mapstructure:"type" yaml:"type" json:"type"`
-	Spec map[string]any `mapstructure:"spec" yaml:"spec" json:"spec"`
 }
 
 func LoadConfigs(fnames []string) (*Config, error) {
@@ -82,7 +73,6 @@ func LoadConfigs(fnames []string) (*Config, error) {
 			}
 			maps.Copy(merged.OTLPDestination.Headers, config.OTLPDestination.Headers)
 		}
-		merged.Script = append(merged.Script, config.Script...)
 	}
 	return merged, nil
 }

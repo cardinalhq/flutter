@@ -28,18 +28,19 @@ import (
 	"github.com/cardinalhq/flutter/pkg/generator"
 	"github.com/cardinalhq/flutter/pkg/metricemitter"
 	"github.com/cardinalhq/flutter/pkg/metricproducer"
+	"github.com/cardinalhq/flutter/pkg/scriptaction"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 type Script struct {
-	Script          []config.ScriptAction
+	Script          []scriptaction.ScriptAction
 	Generators      map[string]generator.MetricGenerator
 	MetricProducers map[string]metricproducer.MetricExporter
 	Duration        time.Duration
 }
 
-func Simulate(ctx context.Context, cfg *config.Config, emitters []metricemitter.Emitter, from time.Duration) error {
-	s, err := makeRunningConfig(cfg)
+func Simulate(ctx context.Context, cfg *config.Config, actions []scriptaction.ScriptAction, emitters []metricemitter.Emitter, from time.Duration) error {
+	s, err := makeRunningConfig(cfg, actions)
 	if err != nil {
 		return fmt.Errorf("error creating running config: %w", err)
 	}
@@ -47,17 +48,18 @@ func Simulate(ctx context.Context, cfg *config.Config, emitters []metricemitter.
 	return run(ctx, cfg, s, emitters, from)
 }
 
-func makeRunningConfig(cfg *config.Config) (*Script, error) {
+func makeRunningConfig(cfg *config.Config, actions []scriptaction.ScriptAction) (*Script, error) {
+	if len(actions) == 0 {
+		return nil, errors.New("no script actions found in config")
+	}
+
 	rc := Script{
-		Script:          cfg.Script,
+		Script:          actions,
 		Generators:      make(map[string]generator.MetricGenerator),
 		MetricProducers: make(map[string]metricproducer.MetricExporter),
 	}
 
-	if len(cfg.Script) == 0 {
-		return nil, errors.New("no script actions found in config")
-	}
-	slices.SortFunc(rc.Script, func(a, b config.ScriptAction) int {
+	slices.SortFunc(rc.Script, func(a, b scriptaction.ScriptAction) int {
 		if v := int(a.At - b.At); v != 0 {
 			return v
 		}

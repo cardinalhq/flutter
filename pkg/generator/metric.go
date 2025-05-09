@@ -18,7 +18,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/scriptaction"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
@@ -31,7 +31,7 @@ type MetricGeneratorSpec struct {
 	Type string `mapstructure:"type" yaml:"type" json:"type"`
 }
 
-func CreateMetricGenerator(mes config.ScriptAction) (MetricGenerator, error) {
+func CreateMetricGenerator(mes scriptaction.ScriptAction) (MetricGenerator, error) {
 	if mes.Spec == nil {
 		return nil, errors.New("missing spec in metric generator")
 	}

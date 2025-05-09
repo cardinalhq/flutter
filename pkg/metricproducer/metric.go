@@ -20,8 +20,8 @@ import (
 
 	"github.com/cardinalhq/oteltools/signalbuilder"
 
-	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/generator"
+	"github.com/cardinalhq/flutter/pkg/scriptaction"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
@@ -52,7 +52,7 @@ const (
 	DefaultFrequency = 10 * time.Second
 )
 
-func CreateMetricExporter(generators map[string]generator.MetricGenerator, name string, mes config.ScriptAction) (MetricExporter, error) {
+func CreateMetricExporter(generators map[string]generator.MetricGenerator, name string, mes scriptaction.ScriptAction) (MetricExporter, error) {
 	exporterTypeAny, ok := mes.Spec["type"]
 	if !ok {
 		return nil, errors.New("missing type in metric exporter spec")

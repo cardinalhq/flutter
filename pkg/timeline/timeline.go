@@ -26,6 +26,7 @@ import (
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/generator"
 	"github.com/cardinalhq/flutter/pkg/metricproducer"
+	"github.com/cardinalhq/flutter/pkg/scriptaction"
 )
 
 type Timeline struct {
@@ -60,22 +61,24 @@ func ParseTimeline(b []byte) (*Timeline, error) {
 	return &timeline, nil
 }
 
-func (t *Timeline) MergeIntoConfig(cfg *config.Config) error {
+func (t *Timeline) MergeIntoConfig(cfg *config.Config, actions []scriptaction.ScriptAction) ([]scriptaction.ScriptAction, error) {
 	for _, metric := range t.Metrics {
-		if err := mergeMetric(cfg, metric); err != nil {
-			return err
+		var err error
+		actions, err = mergeMetric(cfg, actions, metric)
+		if err != nil {
+			return actions, err
 		}
 	}
-	return nil
+	return actions, nil
 }
 
-func mergeMetric(cfg *config.Config, metric Metric) error {
+func mergeMetric(cfg *config.Config, actions []scriptaction.ScriptAction, metric Metric) ([]scriptaction.ScriptAction, error) {
 	for _, variant := range metric.Variants {
 		id := makeID(metric, variant)
 		frequency := getFrequency(metric.Frequency)
 		generators := generateGeneratorIDs(id, len(variant.Timeline))
 		if len(variant.Timeline) == 0 {
-			return nil
+			return actions, nil
 		}
 
 		// Ensure the timeline is sorted by start time
@@ -92,19 +95,23 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 		firstAt := variant.Timeline[0].StartTs.Get()
 		lastAt := variant.Timeline[len(variant.Timeline)-1].EndTs.Get()
 
-		if err := addMetricToConfig(cfg, id, metric, variant, frequency, generators, firstAt, lastAt); err != nil {
-			return err
+		var err error
+		actions, err = addMetricToConfig(cfg, actions, id, metric, variant, frequency, generators, firstAt, lastAt)
+		if err != nil {
+			return actions, err
 		}
 
-		if err := addNoiseGenerator(cfg, id); err != nil {
-			return err
+		actions, err = addNoiseGenerator(cfg, actions, id)
+		if err != nil {
+			return actions, err
 		}
 
-		if err := addTimelineToConfig(cfg, id, variant.Timeline); err != nil {
-			return err
+		actions, err = addTimelineToConfig(cfg, actions, id, variant.Timeline)
+		if err != nil {
+			return actions, err
 		}
 	}
-	return nil
+	return actions, nil
 }
 
 func getFrequency(frequency config.Duration) time.Duration {
@@ -122,8 +129,8 @@ func generateGeneratorIDs(id string, timelineLength int) []string {
 	return generators
 }
 
-func addMetricToConfig(cfg *config.Config, id string, metric Metric, variant Variant, frequency time.Duration, generators []string, startAt, endAt time.Duration) error {
-	action := config.ScriptAction{
+func addMetricToConfig(cfg *config.Config, actions []scriptaction.ScriptAction, id string, metric Metric, variant Variant, frequency time.Duration, generators []string, startAt, endAt time.Duration) ([]scriptaction.ScriptAction, error) {
+	action := scriptaction.ScriptAction{
 		At:   startAt,
 		To:   endAt,
 		Name: id,
@@ -141,12 +148,12 @@ func addMetricToConfig(cfg *config.Config, id string, metric Metric, variant Var
 			},
 		}),
 	}
-	cfg.Script = append(cfg.Script, action)
-	return nil
+	actions = append(actions, action)
+	return actions, nil
 }
 
-func addNoiseGenerator(cfg *config.Config, id string) error {
-	action := config.ScriptAction{
+func addNoiseGenerator(cfg *config.Config, actions []scriptaction.ScriptAction, id string) ([]scriptaction.ScriptAction, error) {
+	action := scriptaction.ScriptAction{
 		Name: id + "_noise",
 		Type: "metricGenerator",
 		Spec: specToMap(generator.MetricGaussianNoiseSpec{
@@ -157,13 +164,13 @@ func addNoiseGenerator(cfg *config.Config, id string) error {
 			Direction: "positive",
 		}),
 	}
-	cfg.Script = append(cfg.Script, action)
-	return nil
+	actions = append(actions, action)
+	return actions, nil
 }
 
-func addTimelineToConfig(cfg *config.Config, id string, timeline []Segment) error {
+func addTimelineToConfig(cfg *config.Config, actions []scriptaction.ScriptAction, id string, timeline []Segment) ([]scriptaction.ScriptAction, error) {
 	if len(timeline) == 0 {
-		return nil
+		return actions, nil
 	}
 
 	startAt := timeline[0].StartTs.Get()
@@ -174,7 +181,7 @@ func addTimelineToConfig(cfg *config.Config, id string, timeline []Segment) erro
 		if duration <= 0 {
 			duration = time.Second
 		}
-		action := config.ScriptAction{
+		action := scriptaction.ScriptAction{
 			Name: id + "_ramp_" + strconv.Itoa(i),
 			Type: "metricGenerator",
 			At:   startAt,
@@ -191,9 +198,9 @@ func addTimelineToConfig(cfg *config.Config, id string, timeline []Segment) erro
 		}
 		startValue = dp.Target
 		startAt = dp.EndTs.Get()
-		cfg.Script = append(cfg.Script, action)
+		actions = append(actions, action)
 	}
-	return nil
+	return actions, nil
 }
 
 func makeMapID(m map[string]any) string {
