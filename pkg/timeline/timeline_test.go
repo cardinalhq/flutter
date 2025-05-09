@@ -16,9 +16,14 @@ package timeline
 
 import (
 	"encoding/json"
+	"os"
 	"testing"
+	"time"
 
+	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/script"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseTimeline(t *testing.T) {
@@ -155,5 +160,76 @@ func TestParseTimeline(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Empty(t, result.Metrics)
+	})
+}
+
+func TestTimelineConversion(t *testing.T) {
+	t.Run("valid timeline conversion", func(t *testing.T) {
+		input := `
+			{
+				"metrics": [
+					{
+						"name": "spanmetrics.http_requests_sent",
+						"type": "sum",
+						"variants": [
+							{
+								"timeline": [
+									{
+										"start": 50,
+										"end_ts": "20m",
+										"target": 50,
+										"start_ts": "0m"
+									}
+								],
+								"attributes": {
+									"has_error": "false",
+									"url.template": "/process-payments",
+									"span.kind.string": "Client",
+									"http.request.method": "POST",
+									"http.response.status_code": "200"
+								}
+							},
+							{
+								"timeline": [
+									{
+										"start": 100,
+										"end_ts": "15m",
+										"target": 100,
+										"start_ts": "5m"
+									}
+								],
+								"attributes": {
+									"has_error": "true",
+									"url.template": "/process-payments",
+									"span.kind.string": "Client",
+									"http.request.method": "POST",
+									"http.response.status_code": "500"
+								}
+							}
+						],
+						"resourceAttributes": {
+							"service.name": "checkoutservice",
+							"k8s.cluster.name": "test-cluster",
+							"k8s.namespace.name": "chq-demo-apps"
+						}
+					}
+				]
+			}`
+		var expected Timeline
+		err := json.Unmarshal([]byte(input), &expected)
+		require.NoError(t, err)
+
+		result, err := ParseTimeline([]byte(input))
+		require.NoError(t, err)
+
+		rscript := script.NewScript()
+		err = result.MergeIntoScript(rscript)
+		require.NoError(t, err)
+
+		require.NoError(t, rscript.Prepare(&config.Config{}))
+
+		_ = rscript.Dump(os.Stdout)
+
+		assert.Equal(t, 20*time.Minute, rscript.Duration())
 	})
 }

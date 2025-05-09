@@ -16,8 +16,10 @@ package script
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 	"time"
@@ -57,20 +59,37 @@ func (s *Script) AddEmitter(emitter metricemitter.Emitter) {
 	s.emitters = append(s.emitters, emitter)
 }
 
-func Simulate(ctx context.Context, cfg *config.Config, script *Script, from time.Duration) error {
-	if err := prepareScript(cfg, script); err != nil {
-		return fmt.Errorf("error creating running config: %w", err)
-	}
-	script.from = from
-	return run(ctx, cfg, script)
+func (s *Script) Duration() time.Duration {
+	return s.duration
 }
 
-func prepareScript(cfg *config.Config, script *Script) error {
-	if len(script.actions) == 0 {
+func (s *Script) Dump(out io.Writer) error {
+	if len(s.actions) == 0 {
 		return errors.New("no script actions found in config")
 	}
 
-	slices.SortFunc(script.actions, func(a, b scriptaction.ScriptAction) int {
+	for _, action := range s.actions {
+		if err := json.NewEncoder(out).Encode(action); err != nil {
+			return fmt.Errorf("error encoding action: %w", err)
+		}
+	}
+	return nil
+}
+
+func Simulate(ctx context.Context, cfg *config.Config, rscript *Script, from time.Duration) error {
+	if err := rscript.Prepare(cfg); err != nil {
+		return fmt.Errorf("error creating running config: %w", err)
+	}
+	rscript.from = from
+	return run(ctx, cfg, rscript)
+}
+
+func (s *Script) Prepare(cfg *config.Config) error {
+	if len(s.actions) == 0 {
+		return errors.New("no script actions found in config")
+	}
+
+	slices.SortFunc(s.actions, func(a, b scriptaction.ScriptAction) int {
 		if v := int(a.At - b.At); v != 0 {
 			return v
 		}
@@ -79,29 +98,46 @@ func prepareScript(cfg *config.Config, script *Script) error {
 		}
 		return strings.Compare(a.Name, b.Name)
 	})
-	if cfg.Duration == 0 {
-		cfg.Duration = script.actions[len(script.actions)-1].At
+
+	var err error
+	s.duration, err = calculateDuration(cfg.Duration, s.actions)
+	if err != nil {
+		return fmt.Errorf("error calculating duration: %w", err)
 	}
-	if cfg.Duration < script.actions[len(script.actions)-1].At {
-		return errors.New("Duration must be greater than or equal to the last script action time, or set to 0")
-	}
-	script.duration = cfg.Duration
 
 	// Create the metric generators
-	for _, action := range script.actions {
+	for _, action := range s.actions {
 		switch action.Type {
 		case "metricGenerator":
 			g, err := generator.CreateMetricGenerator(action)
 			if err != nil {
 				return errors.New("Error creating metric generator: " + err.Error())
 			}
-			script.generators[action.Name] = g
+			s.generators[action.Name] = g
 		default:
 			// Ignore other types of actions for now
 		}
 	}
 
 	return nil
+}
+
+func calculateDuration(cd time.Duration, actions []scriptaction.ScriptAction) (time.Duration, error) {
+	if len(actions) == 0 {
+		return 0, errors.New("no actions provided")
+	}
+	checkvalue := actions[0].At
+	for _, action := range actions {
+		checkvalue = max(checkvalue, action.At)
+		checkvalue = max(checkvalue, action.To)
+	}
+	if cd == 0 {
+		return checkvalue, nil
+	}
+	if cd < checkvalue {
+		return 0, errors.New("Duration must be greater than or equal to the last script action time, or set to 0")
+	}
+	return cd, nil
 }
 
 func run(ctx context.Context, cfg *config.Config, rscript *Script) error {
