@@ -34,7 +34,7 @@ func NewTickerEmitter(out io.Writer) *TickerEmitter {
 }
 
 func (e *TickerEmitter) Emit(_ context.Context, rs *state.RunState, _ pmetric.Metrics) error {
-	percent := float64(rs.Now.Seconds()) / float64(rs.Duration.Seconds()) * 100
-	fmt.Fprintf(e.out, "Tick %d %f.2f%% %s\n", int(rs.Now.Seconds()), percent, rs.Wallclock.Format("2006-01-02 15:04:05"))
+	percent := rs.Now.Seconds() / rs.Duration.Seconds() * 100
+	fmt.Fprintf(e.out, "Tick %d %.2f%% %s\r", int(rs.Now.Seconds()), percent, rs.Wallclock.Format("2006-01-02 15:04:05"))
 	return nil
 }
