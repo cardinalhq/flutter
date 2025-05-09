@@ -28,7 +28,6 @@ import (
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/metricemitter"
 	"github.com/cardinalhq/flutter/pkg/script"
-	"github.com/cardinalhq/flutter/pkg/scriptaction"
 	"github.com/cardinalhq/flutter/pkg/timeline"
 )
 
@@ -91,7 +90,7 @@ func runSimulate(configs, timelines []string) error {
 		return fmt.Errorf("error loading config files: %w", err)
 	}
 
-	actions := []scriptaction.ScriptAction{}
+	rscript := script.NewScript()
 	for _, tl := range timelines {
 		slog.Info("Loading timeline file", "file", tl)
 		b, err := os.ReadFile(tl)
@@ -102,8 +101,7 @@ func runSimulate(configs, timelines []string) error {
 		if err != nil {
 			return fmt.Errorf("error parsing timeline file %q: %w", tl, err)
 		}
-		actions, err = ptl.MergeIntoConfig(cfg, actions)
-		if err != nil {
+		if err := ptl.MergeIntoScript(rscript); err != nil {
 			return fmt.Errorf("error merging timeline into config: %w", err)
 		}
 	}
@@ -141,7 +139,5 @@ func runSimulate(configs, timelines []string) error {
 		emitters = append(emitters, otlp)
 	}
 
-	slog.Info("actions", slog.Any("actions", actions))
-
-	return script.Simulate(context.Background(), cfg, actions, emitters, from)
+	return script.Simulate(context.Background(), cfg, rscript, emitters, from)
 }

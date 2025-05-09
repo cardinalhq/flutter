@@ -27,6 +27,13 @@ type RunState struct {
 	CurrentAction int
 }
 
+func NewRunState(duration time.Duration, seed uint64) *RunState {
+	return &RunState{
+		Duration: duration,
+		RND:      MakeRNG(seed),
+	}
+}
+
 func MakeRNG(seed uint64) *rand.Rand {
 	if seed == 0 {
 		seed = uint64(time.Now().UnixNano())
