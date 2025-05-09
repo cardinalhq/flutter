@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -45,11 +44,7 @@ func Simulate(ctx context.Context, cfg *config.Config, emitters []metricemitter.
 		return fmt.Errorf("error creating running config: %w", err)
 	}
 
-	httpClient := &http.Client{
-		Timeout: cfg.OTLPDestination.Timeout,
-	}
-
-	return run(ctx, cfg, s, emitters, httpClient, from)
+	return run(ctx, cfg, s, emitters, from)
 }
 
 func makeRunningConfig(cfg *config.Config) (*Script, error) {
@@ -96,7 +91,7 @@ func makeRunningConfig(cfg *config.Config) (*Script, error) {
 	return &rc, nil
 }
 
-func run(ctx context.Context, cfg *config.Config, rc *Script, emitters []metricemitter.Emitter, client *http.Client, from time.Duration) error {
+func run(ctx context.Context, cfg *config.Config, rc *Script, emitters []metricemitter.Emitter, from time.Duration) error {
 	seed := cfg.Seed
 	if seed == 0 {
 		seed = uint64(time.Now().UnixNano())
@@ -114,9 +109,6 @@ func run(ctx context.Context, cfg *config.Config, rc *Script, emitters []metrice
 	for now := range seconds + 1 {
 		rs.Now = time.Duration(now) * time.Second
 		rs.Wallclock = starttime.Add(rs.Now)
-		if !cfg.Dryrun && rs.Now >= from {
-			fmt.Printf("TICK! %d, %s\r", now, rs.Wallclock.Format(time.RFC3339))
-		}
 		if len(rc.Script) > rs.CurrentAction {
 			if rc.Script[rs.CurrentAction].At <= rs.Now {
 				action := rc.Script[rs.CurrentAction]
@@ -158,7 +150,7 @@ func run(ctx context.Context, cfg *config.Config, rc *Script, emitters []metrice
 		}
 		md := mb.Build()
 
-		if rs.Now >= from && md.MetricCount() > 0 {
+		if rs.Now >= from {
 			for _, emitter := range emitters {
 				if err := emitter.Emit(ctx, rs, md); err != nil {
 					return fmt.Errorf("error emitting metric: %w", err)

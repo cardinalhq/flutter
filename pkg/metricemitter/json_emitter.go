@@ -46,6 +46,10 @@ type jsonWrapper struct {
 }
 
 func (e *JSONMetricEmitter) Emit(ctx context.Context, rs *state.RunState, md pmetric.Metrics) error {
+	if md.DataPointCount() == 0 {
+		return nil
+	}
+
 	marshaller := pmetric.ProtoMarshaler{}
 
 	j := jsonWrapper{

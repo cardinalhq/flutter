@@ -45,6 +45,10 @@ func NewOTLPMetricEmitter(client *http.Client, endpoint string, headers map[stri
 }
 
 func (e *OTLPMetricEmitter) Emit(ctx context.Context, rs *state.RunState, md pmetric.Metrics) error {
+	if md.DataPointCount() == 0 {
+		return nil
+	}
+
 	req := pmetricotlp.NewExportRequestFromMetrics(md)
 
 	body, err := req.MarshalProto()

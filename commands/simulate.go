@@ -118,11 +118,16 @@ func runSimulate(configs, timelines []string) error {
 
 	emitters := []metricemitter.Emitter{}
 
+	if !cfg.Dryrun {
+		emitters = append(emitters, metricemitter.NewTickerEmitter(os.Stdout))
+	}
+
 	if emitJson {
 		emitters = append(emitters, metricemitter.NewJSONMetricEmitter(os.Stdout))
 	}
 
 	if cfg.OTLPDestination.Endpoint != "" && !cfg.Dryrun {
+		slog.Info("Using OTLP destination", "endpoint", cfg.OTLPDestination.Endpoint)
 		client := &http.Client{
 			Timeout: cfg.OTLPDestination.Timeout,
 		}
