@@ -46,7 +46,7 @@ func CreateMetricGenerator(mes scriptaction.ScriptAction) (MetricGenerator, erro
 	switch generatorType {
 	case "constant":
 		return NewMetricConstant(mes.At, mes.Spec)
-	case "NormalNoise":
+	case "normalNoise":
 		return NewMetricNormalNoise(mes.At, mes.Spec)
 	case "poissonNoise":
 		return NewMetricPoissonNoise(mes.At, mes.Spec)
@@ -57,6 +57,6 @@ func CreateMetricGenerator(mes scriptaction.ScriptAction) (MetricGenerator, erro
 	case "spikyNoise":
 		return NewMetricSpikyNoise(mes.At, mes.Spec)
 	default:
-		return nil, errors.New("unknown metric generator type: " + mes.Type)
+		return nil, errors.New("unknown metricGenerator type: " + generatorType)
 	}
 }

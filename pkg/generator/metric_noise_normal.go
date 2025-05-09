@@ -19,8 +19,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
@@ -93,10 +91,7 @@ func calcStdDev(desired, variation float64) float64 {
 }
 
 func (m *MetricNormalNoise) Reconfigure(_ time.Duration, is map[string]any) error {
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:      &m.spec,
-		ErrorUnused: true,
-	})
+	decoder, err := config.NewMapstructureDecoder(&m.spec)
 	if err != nil {
 		return fmt.Errorf("failed to create decoder: %w", err)
 	}

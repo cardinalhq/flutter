@@ -156,7 +156,8 @@ func addNoiseGenerator(rs *script.Script, id string) error {
 				Type: "normalNoise",
 			},
 			Variation: 5,
-			Direction: "positive",
+			Direction: "both",
+			StdDev:    -1,
 		}),
 	}
 	rs.AddAction(action)
