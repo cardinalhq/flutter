@@ -36,6 +36,7 @@ type Script struct {
 	actions         []scriptaction.ScriptAction
 	generators      map[string]generator.MetricGenerator
 	metricProducers map[string]metricproducer.MetricExporter
+	emitters        []metricemitter.Emitter
 	duration        time.Duration
 	from            time.Duration
 }
@@ -52,12 +53,16 @@ func (s *Script) AddAction(action scriptaction.ScriptAction) {
 	s.actions = append(s.actions, action)
 }
 
-func Simulate(ctx context.Context, cfg *config.Config, script *Script, emitters []metricemitter.Emitter, from time.Duration) error {
+func (s *Script) AddEmitter(emitter metricemitter.Emitter) {
+	s.emitters = append(s.emitters, emitter)
+}
+
+func Simulate(ctx context.Context, cfg *config.Config, script *Script, from time.Duration) error {
 	if err := prepareScript(cfg, script); err != nil {
 		return fmt.Errorf("error creating running config: %w", err)
 	}
 	script.from = from
-	return run(ctx, cfg, script, emitters)
+	return run(ctx, cfg, script)
 }
 
 func prepareScript(cfg *config.Config, script *Script) error {
@@ -99,39 +104,39 @@ func prepareScript(cfg *config.Config, script *Script) error {
 	return nil
 }
 
-func run(ctx context.Context, cfg *config.Config, script *Script, emitters []metricemitter.Emitter) error {
+func run(ctx context.Context, cfg *config.Config, rscript *Script) error {
 	seed := cfg.Seed
 	if seed == 0 {
 		seed = uint64(time.Now().UnixNano())
 	}
 
-	rs := state.NewRunState(script.duration, seed)
+	rs := state.NewRunState(rscript.duration, seed)
 	if cfg.WallclockStart.IsZero() {
 		cfg.WallclockStart = time.Now()
 	}
 	seconds := int64(rs.Duration.Seconds())
 	for now := range seconds + 1 {
-		err := tick(ctx, cfg, script, emitters, rs, now)
+		rs.Now = time.Duration(now) * time.Second
+		rs.Wallclock = cfg.WallclockStart.Add(rs.Now)
+		err := tick(ctx, rscript, rs)
 		if err != nil {
 			return fmt.Errorf("error running script: %w", err)
 		}
-		if !cfg.Dryrun && rs.Now < script.duration {
+		if !cfg.Dryrun && rs.Now < rscript.duration {
 			time.Sleep(1 * time.Second)
 		}
 	}
 	return nil
 }
 
-func tick(ctx context.Context, cfg *config.Config, script *Script, emitters []metricemitter.Emitter, rs *state.RunState, now int64) error {
-	rs.Now = time.Duration(now) * time.Second
-	rs.Wallclock = cfg.WallclockStart.Add(rs.Now)
-	if len(script.actions) > rs.CurrentAction {
-		if script.actions[rs.CurrentAction].At <= rs.Now {
-			action := script.actions[rs.CurrentAction]
+func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
+	if len(rscript.actions) > rs.CurrentAction {
+		if rscript.actions[rs.CurrentAction].At <= rs.Now {
+			action := rscript.actions[rs.CurrentAction]
 			rs.CurrentAction++
 			switch action.Type {
 			case "metricGenerator":
-				g, ok := script.generators[action.Name]
+				g, ok := rscript.generators[action.Name]
 				if !ok {
 					return fmt.Errorf("metric generator not found: %s", action.Name)
 				}
@@ -140,34 +145,34 @@ func tick(ctx context.Context, cfg *config.Config, script *Script, emitters []me
 					return fmt.Errorf("error reconfiguring metric generator: %s", action.Name)
 				}
 			case "metric":
-				_, ok := script.metricProducers[action.Name]
+				_, ok := rscript.metricProducers[action.Name]
 				if ok {
 					return fmt.Errorf("metric exporter already exists: %s", action.Name)
 				}
-				metric, err := metricproducer.CreateMetricExporter(script.generators, action.Name, action)
+				metric, err := metricproducer.CreateMetricExporter(rscript.generators, action.Name, action)
 				if err != nil {
 					return fmt.Errorf("error creating metric exporter: %v", err)
 				}
-				script.metricProducers[action.Name] = metric
+				rscript.metricProducers[action.Name] = metric
 			}
 		}
 	}
 
-	metricNames := make([]string, 0, len(script.metricProducers))
-	for name := range script.metricProducers {
+	metricNames := make([]string, 0, len(rscript.metricProducers))
+	for name := range rscript.metricProducers {
 		metricNames = append(metricNames, name)
 	}
 	mb := signalbuilder.NewMetricsBuilder()
 	for _, name := range metricNames {
-		err := script.metricProducers[name].Emit(script.generators, rs, mb)
+		err := rscript.metricProducers[name].Emit(rscript.generators, rs, mb)
 		if err != nil {
 			return fmt.Errorf("error emitting metric: %s", name)
 		}
 	}
 	md := mb.Build()
 
-	if rs.Now >= script.from {
-		for _, emitter := range emitters {
+	if rs.Now >= rscript.from {
+		for _, emitter := range rscript.emitters {
 			if err := emitter.Emit(ctx, rs, md); err != nil {
 				return fmt.Errorf("error emitting metric: %w", err)
 			}

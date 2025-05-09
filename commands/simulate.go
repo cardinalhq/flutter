@@ -117,14 +117,12 @@ func runSimulate(configs, timelines []string) error {
 
 	cfg.Dryrun = cfg.Dryrun || dryrun
 
-	emitters := []metricemitter.Emitter{}
-
 	if !cfg.Dryrun {
-		emitters = append(emitters, metricemitter.NewTickerEmitter(os.Stdout))
+		rscript.AddEmitter(metricemitter.NewTickerEmitter(os.Stdout))
 	}
 
 	if emitJson {
-		emitters = append(emitters, metricemitter.NewJSONMetricEmitter(os.Stdout))
+		rscript.AddEmitter(metricemitter.NewJSONMetricEmitter(os.Stdout))
 	}
 
 	if cfg.OTLPDestination.Endpoint != "" && !cfg.Dryrun {
@@ -136,8 +134,8 @@ func runSimulate(configs, timelines []string) error {
 		if err != nil {
 			return fmt.Errorf("error creating OTLP emitter: %w", err)
 		}
-		emitters = append(emitters, otlp)
+		rscript.AddEmitter(otlp)
 	}
 
-	return script.Simulate(context.Background(), cfg, rscript, emitters, from)
+	return script.Simulate(context.Background(), cfg, rscript, from)
 }
