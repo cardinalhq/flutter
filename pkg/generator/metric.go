@@ -46,8 +46,8 @@ func CreateMetricGenerator(mes scriptaction.ScriptAction) (MetricGenerator, erro
 	switch generatorType {
 	case "constant":
 		return NewMetricConstant(mes.At, mes.Spec)
-	case "gaussianNoise":
-		return NewMetricGaussianNoise(mes.At, mes.Spec)
+	case "NormalNoise":
+		return NewMetricNormalNoise(mes.At, mes.Spec)
 	case "poissonNoise":
 		return NewMetricPoissonNoise(mes.At, mes.Spec)
 	case "randomWalk":

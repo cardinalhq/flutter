@@ -25,17 +25,17 @@ import (
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
-// MetricGaussianNoise emits independent normal noise centered on Target.
+// MetricNormalNoise emits independent normal noise centered on Target.
 // On each Emit(), it samples:
 //
 //	x ~ Normal(Target, StdDev²)
 //
 // then clamps x into [Target-Variation, Target+Variation].
 // Emit(in) returns in + x.
-type MetricGaussianNoiseSpec struct {
+type MetricNormalNoiseSpec struct {
 	MetricGeneratorSpec `mapstructure:",squash"`
 
-	// Target is the mean around which Gaussian noise is drawn.
+	// Target is the mean around which Normal noise is drawn.
 	Target float64 `mapstructure:"target" yaml:"target" json:"target"`
 	// StdDev is the standard deviation of the normal distribution.
 	StdDev float64 `mapstructure:"stdDev"   yaml:"stdDev"   json:"stdDev"`
@@ -46,17 +46,17 @@ type MetricGaussianNoiseSpec struct {
 	Direction string `mapstructure:"direction" yaml:"direction" json:"direction"`
 }
 
-type MetricGaussianNoise struct {
-	spec   MetricGaussianNoiseSpec
+type MetricNormalNoise struct {
+	spec   MetricNormalNoiseSpec
 	stdDev float64
 }
 
-var _ MetricGenerator = (*MetricGaussianNoise)(nil)
+var _ MetricGenerator = (*MetricNormalNoise)(nil)
 
-var validGaussianDirs = []string{"positive", "negative", "both"}
+var validNormalDirs = []string{"positive", "negative", "both"}
 
-func NewMetricGaussianNoise(_ time.Duration, is map[string]any) (*MetricGaussianNoise, error) {
-	spec := MetricGaussianNoiseSpec{
+func NewMetricNormalNoise(_ time.Duration, is map[string]any) (*MetricNormalNoise, error) {
+	spec := MetricNormalNoiseSpec{
 		StdDev:    -1,
 		Direction: "both",
 	}
@@ -73,11 +73,11 @@ func NewMetricGaussianNoise(_ time.Duration, is map[string]any) (*MetricGaussian
 		return nil, fmt.Errorf("invalid variation: %f", spec.Variation)
 	}
 
-	if !slices.Contains(validGaussianDirs, spec.Direction) {
+	if !slices.Contains(validNormalDirs, spec.Direction) {
 		return nil, fmt.Errorf("invalid direction: %s", spec.Direction)
 	}
 
-	m := &MetricGaussianNoise{
+	m := &MetricNormalNoise{
 		spec:   spec,
 		stdDev: calcStdDev(spec.StdDev, spec.Variation),
 	}
@@ -92,7 +92,7 @@ func calcStdDev(desired, variation float64) float64 {
 	return stdDev
 }
 
-func (m *MetricGaussianNoise) Reconfigure(_ time.Duration, is map[string]any) error {
+func (m *MetricNormalNoise) Reconfigure(_ time.Duration, is map[string]any) error {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Result:      &m.spec,
 		ErrorUnused: true,
@@ -107,7 +107,7 @@ func (m *MetricGaussianNoise) Reconfigure(_ time.Duration, is map[string]any) er
 		return fmt.Errorf("invalid variation: %f", m.spec.Variation)
 	}
 
-	if !slices.Contains(validGaussianDirs, m.spec.Direction) {
+	if !slices.Contains(validNormalDirs, m.spec.Direction) {
 		return fmt.Errorf("invalid direction: %s", m.spec.Direction)
 	}
 
@@ -115,14 +115,14 @@ func (m *MetricGaussianNoise) Reconfigure(_ time.Duration, is map[string]any) er
 	return nil
 }
 
-func (m *MetricGaussianNoise) Emit(st *state.RunState, incoming float64) float64 {
-	sample := getGaussianSample(st, m.spec, m.stdDev)
+func (m *MetricNormalNoise) Emit(st *state.RunState, incoming float64) float64 {
+	sample := getNormalSample(st, m.spec, m.stdDev)
 	return incoming + sample
 }
 
-// getGaussianNoise returns a noise sample drawn from the distribution,
+// getNormalNoise returns a noise sample drawn from the distribution,
 // using truncated-normal rejection sampling for directional modes.
-func getGaussianNoise(st *state.RunState, spec MetricGaussianNoiseSpec, stdDev float64) float64 {
+func getNormalNoise(st *state.RunState, spec MetricNormalNoiseSpec, stdDev float64) float64 {
 	if spec.Direction == "both" {
 		return st.RND.NormFloat64() * stdDev
 	}
@@ -144,9 +144,9 @@ func getGaussianNoise(st *state.RunState, spec MetricGaussianNoiseSpec, stdDev f
 	return noise
 }
 
-// getGaussianSample adds Target and then clamps to [Target±Variation].
-func getGaussianSample(st *state.RunState, spec MetricGaussianNoiseSpec, stdDev float64) float64 {
-	noise := getGaussianNoise(st, spec, stdDev)
+// getNormalSample adds Target and then clamps to [Target±Variation].
+func getNormalSample(st *state.RunState, spec MetricNormalNoiseSpec, stdDev float64) float64 {
+	noise := getNormalNoise(st, spec, stdDev)
 	sample := spec.Target + noise
 
 	// clamp to [Target–Variation, Target+Variation]

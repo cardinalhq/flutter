@@ -151,9 +151,9 @@ func addNoiseGenerator(rs *script.Script, id string) error {
 	action := scriptaction.ScriptAction{
 		Name: id + "_noise",
 		Type: "metricGenerator",
-		Spec: specToMap(generator.MetricGaussianNoiseSpec{
+		Spec: specToMap(generator.MetricNormalNoiseSpec{
 			MetricGeneratorSpec: generator.MetricGeneratorSpec{
-				Type: "gaussianNoise",
+				Type: "normalNoise",
 			},
 			Variation: 5,
 			Direction: "positive",
