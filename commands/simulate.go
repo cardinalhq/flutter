@@ -39,6 +39,7 @@ var (
 	dryrun        bool
 	from          time.Duration
 	emitJson      bool
+	emitDebug     bool
 )
 
 func init() {
@@ -66,7 +67,11 @@ func init() {
 	SimulateCmd.Flags().
 		BoolVar(&emitJson, "json", false, "Dump the timeline in JSON format")
 
-	// require at least one config
+	// --debug will show the output timeline in JSON format
+	SimulateCmd.Flags().
+		BoolVar(&emitDebug, "debug", false, "Dump the timeline in JSON format")
+
+		// require at least one config
 	_ = SimulateCmd.MarkFlagRequired("config")
 }
 
@@ -123,6 +128,10 @@ func runSimulate(configs, timelines []string) error {
 
 	if emitJson {
 		rscript.AddEmitter(metricemitter.NewJSONMetricEmitter(os.Stdout))
+	}
+
+	if emitDebug {
+		rscript.AddEmitter(metricemitter.NewDebugMetricEmitter(os.Stdout))
 	}
 
 	if cfg.OTLPDestination.Endpoint != "" && !cfg.Dryrun {
