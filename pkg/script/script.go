@@ -15,26 +15,19 @@
 package script
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/cardinalhq/oteltools/signalbuilder"
-	"go.opentelemetry.io/collector/pdata/pmetric"
-	"go.opentelemetry.io/collector/pdata/pmetric/pmetricotlp"
 
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/generator"
+	"github.com/cardinalhq/flutter/pkg/metricemitter"
 	"github.com/cardinalhq/flutter/pkg/metricproducer"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
@@ -46,7 +39,7 @@ type Script struct {
 	Duration        time.Duration
 }
 
-func Simulate(cfg *config.Config, from time.Duration) error {
+func Simulate(ctx context.Context, cfg *config.Config, emitters []metricemitter.Emitter, from time.Duration) error {
 	s, err := makeRunningConfig(cfg)
 	if err != nil {
 		return fmt.Errorf("error creating running config: %w", err)
@@ -56,7 +49,7 @@ func Simulate(cfg *config.Config, from time.Duration) error {
 		Timeout: cfg.OTLPDestination.Timeout,
 	}
 
-	return run(cfg, s, httpClient, from)
+	return run(ctx, cfg, s, emitters, httpClient, from)
 }
 
 func makeRunningConfig(cfg *config.Config) (*Script, error) {
@@ -103,7 +96,7 @@ func makeRunningConfig(cfg *config.Config) (*Script, error) {
 	return &rc, nil
 }
 
-func run(cfg *config.Config, rc *Script, client *http.Client, from time.Duration) error {
+func run(ctx context.Context, cfg *config.Config, rc *Script, emitters []metricemitter.Emitter, client *http.Client, from time.Duration) error {
 	seed := cfg.Seed
 	if seed == 0 {
 		seed = uint64(time.Now().UnixNano())
@@ -163,19 +156,13 @@ func run(cfg *config.Config, rc *Script, client *http.Client, from time.Duration
 				return fmt.Errorf("error emitting metric: %s", name)
 			}
 		}
-		mm := mb.Build()
+		md := mb.Build()
 
-		shouldEmit := rs.Now >= from && !cfg.Dryrun
-
-		if shouldEmit && cfg.OTLPDestination.Endpoint != "" {
-			if err := sendOTLPMetric(context.Background(), client, cfg.OTLPDestination.Headers, mm, cfg.OTLPDestination.Endpoint); err != nil {
-				slog.Warn("failed to send OTLP metrics", "error", err)
-			}
-		}
-
-		if rs.Now >= from && cfg.DumpJSON {
-			if err := dumpJSONMetric(rs, mm); err != nil {
-				return fmt.Errorf("error dumping JSON metrics: %w", err)
+		if rs.Now >= from && md.MetricCount() > 0 {
+			for _, emitter := range emitters {
+				if err := emitter.Emit(ctx, rs, md); err != nil {
+					return fmt.Errorf("error emitting metric: %w", err)
+				}
 			}
 		}
 
@@ -185,91 +172,4 @@ func run(cfg *config.Config, rc *Script, client *http.Client, from time.Duration
 	}
 
 	return nil
-}
-
-func sendOTLPMetric(ctx context.Context, client *http.Client, headers map[string]string, md pmetric.Metrics, endpoint string) error {
-	if md.MetricCount() == 0 {
-		return nil
-	}
-
-	req := pmetricotlp.NewExportRequestFromMetrics(md)
-
-	body, err := req.MarshalProto()
-	if err != nil {
-		return fmt.Errorf("failed to marshal metrics to protobuf: %w", err)
-	}
-
-	url := strings.TrimRight(endpoint, "/") + "/v1/metrics"
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("failed to create HTTP request: %w", err)
-	}
-	for k, v := range headers {
-		httpReq.Header.Set(k, v)
-	}
-	httpReq.Header.Set("Content-Type", "application/x-protobuf")
-
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("failed to send metrics: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("collector returned %s: %s", resp.Status, string(respBody))
-	}
-
-	return nil
-}
-
-type jsonWrapper struct {
-	Timestamp       time.Time       `json:"timestamp"`
-	MetricsProtobuf string          `json:"metricsProtobuf"`
-	At              config.Duration `json:"at"`
-}
-
-func dumpJSONMetric(rs *state.RunState, md pmetric.Metrics) error {
-	if md.MetricCount() == 0 {
-		return nil
-	}
-
-	marshaller := pmetric.ProtoMarshaler{}
-
-	j := jsonWrapper{
-		Timestamp: rs.Wallclock,
-		At:        config.Duration{Duration: rs.Now},
-	}
-
-	msgBody, err := marshaller.MarshalMetrics(md)
-	if err != nil {
-		return fmt.Errorf("failed to marshal metrics: %w", err)
-	}
-
-	msgBody, err = gzipBytes(msgBody)
-	if err != nil {
-		return fmt.Errorf("failed to gzip metrics: %w", err)
-	}
-	j.MetricsProtobuf = base64.StdEncoding.EncodeToString(msgBody)
-
-	jsonData, err := json.Marshal(j)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-
-	fmt.Println(string(jsonData))
-	return nil
-}
-
-func gzipBytes(data []byte) ([]byte, error) {
-	var buf bytes.Buffer
-	w := gzip.NewWriter(&buf)
-	if _, err := w.Write(data); err != nil {
-		return nil, err
-	}
-	if err := w.Close(); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
 }

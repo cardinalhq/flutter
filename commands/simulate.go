@@ -15,15 +15,18 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/metricemitter"
 	"github.com/cardinalhq/flutter/pkg/script"
 	"github.com/cardinalhq/flutter/pkg/timeline"
 )
@@ -112,7 +115,23 @@ func runSimulate(configs, timelines []string) error {
 	}
 
 	cfg.Dryrun = cfg.Dryrun || dryrun
-	cfg.DumpJSON = emitJson
 
-	return script.Simulate(cfg, from)
+	emitters := []metricemitter.Emitter{}
+
+	if emitJson {
+		emitters = append(emitters, metricemitter.NewJSONMetricEmitter(os.Stdout))
+	}
+
+	if cfg.OTLPDestination.Endpoint != "" && !cfg.Dryrun {
+		client := &http.Client{
+			Timeout: cfg.OTLPDestination.Timeout,
+		}
+		otlp, err := metricemitter.NewOTLPMetricEmitter(client, cfg.OTLPDestination.Endpoint, cfg.OTLPDestination.Headers)
+		if err != nil {
+			return fmt.Errorf("error creating OTLP emitter: %w", err)
+		}
+		emitters = append(emitters, otlp)
+	}
+
+	return script.Simulate(context.Background(), cfg, emitters, from)
 }
