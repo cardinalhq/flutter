@@ -35,15 +35,15 @@ import (
 
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/generator"
-	"github.com/cardinalhq/flutter/pkg/metrics"
+	"github.com/cardinalhq/flutter/pkg/metricproducer"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 type Script struct {
-	Script     []config.ScriptAction
-	Generators map[string]generator.MetricGenerator
-	Exporters  map[string]metrics.MetricExporter
-	Duration   time.Duration
+	Script          []config.ScriptAction
+	Generators      map[string]generator.MetricGenerator
+	MetricProducers map[string]metricproducer.MetricExporter
+	Duration        time.Duration
 }
 
 func Simulate(cfg *config.Config, from time.Duration) error {
@@ -61,9 +61,9 @@ func Simulate(cfg *config.Config, from time.Duration) error {
 
 func makeRunningConfig(cfg *config.Config) (*Script, error) {
 	rc := Script{
-		Script:     cfg.Script,
-		Generators: make(map[string]generator.MetricGenerator),
-		Exporters:  make(map[string]metrics.MetricExporter),
+		Script:          cfg.Script,
+		Generators:      make(map[string]generator.MetricGenerator),
+		MetricProducers: make(map[string]metricproducer.MetricExporter),
 	}
 
 	if len(cfg.Script) == 0 {
@@ -139,26 +139,26 @@ func run(cfg *config.Config, rc *Script, client *http.Client, from time.Duration
 						return fmt.Errorf("error reconfiguring metric generator: %s", action.Name)
 					}
 				case "metric":
-					_, ok := rc.Exporters[action.Name]
+					_, ok := rc.MetricProducers[action.Name]
 					if ok {
 						return fmt.Errorf("metric exporter already exists: %s", action.Name)
 					}
-					metric, err := metrics.CreateMetricExporter(rc.Generators, action.Name, action)
+					metric, err := metricproducer.CreateMetricExporter(rc.Generators, action.Name, action)
 					if err != nil {
 						return fmt.Errorf("error creating metric exporter: %v", err)
 					}
-					rc.Exporters[action.Name] = metric
+					rc.MetricProducers[action.Name] = metric
 				}
 			}
 		}
 
-		metricNames := make([]string, 0, len(rc.Exporters))
-		for name := range rc.Exporters {
+		metricNames := make([]string, 0, len(rc.MetricProducers))
+		for name := range rc.MetricProducers {
 			metricNames = append(metricNames, name)
 		}
 		mb := signalbuilder.NewMetricsBuilder()
 		for _, name := range metricNames {
-			err := rc.Exporters[name].Emit(rc.Generators, rs, mb)
+			err := rc.MetricProducers[name].Emit(rc.Generators, rs, mb)
 			if err != nil {
 				return fmt.Errorf("error emitting metric: %s", name)
 			}

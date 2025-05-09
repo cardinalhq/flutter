@@ -25,7 +25,7 @@ import (
 
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/generator"
-	"github.com/cardinalhq/flutter/pkg/metrics"
+	"github.com/cardinalhq/flutter/pkg/metricproducer"
 )
 
 type Timeline struct {
@@ -109,7 +109,7 @@ func mergeMetric(cfg *config.Config, metric Metric) error {
 
 func getFrequency(frequency config.Duration) time.Duration {
 	if frequency.Get() == 0 {
-		return metrics.DefaultFrequency
+		return metricproducer.DefaultFrequency
 	}
 	return frequency.Get()
 }
@@ -128,12 +128,12 @@ func addMetricToConfig(cfg *config.Config, id string, metric Metric, variant Var
 		To:   endAt,
 		Name: id,
 		Type: "metric",
-		Spec: specToMap(metrics.MetricGaugeSpec{
-			MetricExporterSpec: metrics.MetricExporterSpec{
+		Spec: specToMap(metricproducer.MetricGaugeSpec{
+			MetricProducerSpec: metricproducer.MetricProducerSpec{
 				Name:      metric.Name,
 				Type:      metric.Type,
 				Frequency: frequency,
-				Attributes: metrics.Attributes{
+				Attributes: metricproducer.Attributes{
 					Resource:  metric.ResourceAttributes,
 					Datapoint: variant.Attributes,
 				},

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package metrics
+package metricproducer
 
 import (
 	"errors"
@@ -36,7 +36,7 @@ type Attributes struct {
 	Datapoint map[string]any `mapstructure:"datapoint" yaml:"datapoint" json:"datapoint"`
 }
 
-type MetricExporterSpec struct {
+type MetricProducerSpec struct {
 	To         time.Duration `mapstructure:"to" yaml:"to" json:"to"`
 	Attributes Attributes    `mapstructure:"attributes" yaml:"attributes" json:"attributes"`
 	Generators []string      `mapstructure:"generators" yaml:"generators" json:"generators"`

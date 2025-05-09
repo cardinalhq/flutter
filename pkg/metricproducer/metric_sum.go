@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package metrics
+package metricproducer
 
 import (
 	"errors"
@@ -30,7 +30,7 @@ import (
 )
 
 type MetricSumSpec struct {
-	MetricExporterSpec `mapstructure:",squash"`
+	MetricProducerSpec `mapstructure:",squash"`
 }
 
 type MetricSum struct {
@@ -41,7 +41,7 @@ var _ MetricExporter = (*MetricSum)(nil)
 
 func NewMetricSum(generators map[string]generator.MetricGenerator, name string, to time.Duration, spec map[string]any) (*MetricSum, error) {
 	SumSpec := MetricSumSpec{
-		MetricExporterSpec: MetricExporterSpec{
+		MetricProducerSpec: MetricProducerSpec{
 			Frequency: DefaultFrequency,
 			Name:      name,
 			To:        to,
