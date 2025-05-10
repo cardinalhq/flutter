@@ -54,7 +54,7 @@ func (e *JSONMetricEmitter) Emit(ctx context.Context, rs *state.RunState, md pme
 
 	j := jsonWrapper{
 		Timestamp: rs.Wallclock,
-		At:        config.Duration{Duration: rs.Now},
+		At:        config.Duration{Duration: rs.Tick},
 	}
 
 	msgBody, err := marshaller.MarshalMetrics(md)

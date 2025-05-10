@@ -15,109 +15,103 @@
 package metricproducer
 
 import (
-	"errors"
 	"fmt"
-	"time"
 
 	"github.com/cardinalhq/oteltools/signalbuilder"
-	"github.com/mitchellh/mapstructure"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 
+	"github.com/cardinalhq/flutter/pkg/brokenwing"
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/generator"
+	"github.com/cardinalhq/flutter/pkg/scriptaction"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
-type MetricGaugeSpec struct {
-	MetricProducerSpec `mapstructure:",squash"`
-}
-
 type MetricGauge struct {
-	spec MetricGaugeSpec
+	MetricProducerSpec `mapstructure:",squash" yaml:",inline" json:",inline"`
 }
 
 var _ MetricExporter = (*MetricGauge)(nil)
 
-func NewMetricGauge(generators map[string]generator.MetricGenerator, name string, to time.Duration, spec map[string]any) (*MetricGauge, error) {
-	gaugeSpec := MetricGaugeSpec{
+func NewMetricGauge(generators map[string]generator.MetricGenerator, name string, mes scriptaction.ScriptAction) (*MetricGauge, error) {
+	gaugeSpec := MetricGauge{
 		MetricProducerSpec: MetricProducerSpec{
 			Frequency: DefaultFrequency,
 			Name:      name,
-			To:        to,
+			To:        mes.To,
 		},
 	}
 	if name == "" {
-		return nil, errors.New("invalid metric name: " + name)
+		return nil, fmt.Errorf("%w: %s", brokenwing.ErrInvalidMetricName, name)
 	}
 
 	decoder, err := config.NewMapstructureDecoder(&gaugeSpec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create decoder: %w", err)
 	}
-	if err := decoder.Decode(spec); err != nil {
-		return nil, fmt.Errorf("unable to decode MetricGaugeSpec for %q: %w", name, err)
+	if err := decoder.Decode(mes.Spec); err != nil {
+		return nil, &brokenwing.DecodeError{Name: name, Err: err}
 	}
 
 	if len(gaugeSpec.Generators) == 0 {
-		return nil, errors.New("no generators specified for metric gauge: " + name)
+		return nil, fmt.Errorf("%w: %s", brokenwing.ErrNoGenerators, name)
 	}
 	for _, generatorName := range gaugeSpec.Generators {
 		if _, ok := generators[generatorName]; !ok {
-			return nil, errors.New("unknown generator: " + generatorName)
+			return nil, fmt.Errorf("%w: %s", brokenwing.ErrUnknownGenerator, generatorName)
 		}
 	}
 
-	return &MetricGauge{
-		spec: gaugeSpec,
-	}, nil
+	return &gaugeSpec, nil
 }
 
 func (m *MetricGauge) Reconfigure(generators map[string]generator.MetricGenerator, spec map[string]any) error {
-	if err := mapstructure.Decode(spec, &m.spec); err != nil {
-		return err
+	decoder, err := config.NewMapstructureDecoder(m)
+	if err != nil {
+		return fmt.Errorf("failed to create decoder: %w", err)
 	}
-	for _, generatorName := range m.spec.Generators {
+	if err := decoder.Decode(spec); err != nil {
+		return &brokenwing.DecodeError{Name: m.Name, Err: err}
+	}
+	for _, generatorName := range m.Generators {
 		if _, ok := generators[generatorName]; !ok {
-			return errors.New("unknown generator: " + generatorName)
+			return fmt.Errorf("%w: %s", brokenwing.ErrUnknownGenerator, generatorName)
 		}
 	}
 	return nil
 }
 
 func (m *MetricGauge) Emit(generators map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error {
-	if !shouldEmitMetric(state, m.spec.To) {
+	if !m.ShouldEmit(state) {
 		return nil
 	}
-	if state.Now < m.spec.lastEmitted+m.spec.Frequency {
-		return nil
-	}
-	m.spec.lastEmitted = state.Now
+	m.lastEmitted = state.Tick
 
-	value, err := calculateValue(generators, m.spec.Generators, state)
+	value, err := calculateValue(generators, m.Generators, state)
 	if err != nil {
 		return err
 	}
 
 	rattr := pcommon.NewMap()
-	if err := rattr.FromRaw(m.spec.Attributes.Resource); err != nil {
+	if err := rattr.FromRaw(m.Attributes.Resource); err != nil {
 		return fmt.Errorf("failed to create resource attributes: %w", err)
 	}
 	r := mb.Resource(rattr)
 
 	sattr := pcommon.NewMap()
-	if err := sattr.FromRaw(m.spec.Attributes.Scope); err != nil {
+	if err := sattr.FromRaw(m.Attributes.Scope); err != nil {
 		return fmt.Errorf("failed to create scope attributes: %w", err)
 	}
 	s := r.Scope(sattr)
 
-	mm, err := s.Metric(m.spec.Name, "unit", pmetric.MetricTypeGauge)
+	mm, err := s.Metric(m.Name, "unit", pmetric.MetricTypeGauge)
 	if err != nil {
 		return fmt.Errorf("failed to create metric: %w", err)
 	}
 
 	dattr := pcommon.NewMap()
-	if err := dattr.FromRaw(m.spec.Attributes.Datapoint); err != nil {
+	if err := dattr.FromRaw(m.Attributes.Datapoint); err != nil {
 		return fmt.Errorf("failed to create datapoint attributes: %w", err)
 	}
 

@@ -1,0 +1,37 @@
+{
+  "metrics": [
+    {
+      "name": "alice",
+      "type": "sum",
+      "variants": [
+        {
+          "attributes": {
+            "result": "success"
+          },
+          "timeline": [
+            {
+              "type": "segment",
+              "end_ts": "2m",
+              "start": 100,
+              "target": 100
+            }
+          ]
+        },
+        {
+          "attributes": {
+            "result": "ERROR"
+          },
+          "timeline": [
+            {
+              "type": "segment",
+              "start_ts": "1m",
+              "end_ts": "1m30s",
+              "start": 200,
+              "target": 200
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

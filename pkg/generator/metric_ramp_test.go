@@ -39,7 +39,7 @@ func TestMetricRamp_Emit(t *testing.T) {
 				Duration: 10 * time.Minute,
 			},
 			runState: state.RunState{
-				Now: 5 * time.Minute,
+				Tick: 5 * time.Minute,
 			},
 			initialVal: 0,
 			expected:   50, // Halfway through the duration
@@ -52,7 +52,7 @@ func TestMetricRamp_Emit(t *testing.T) {
 				Duration: 10 * time.Minute,
 			},
 			runState: state.RunState{
-				Now: 10 * time.Minute,
+				Tick: 10 * time.Minute,
 			},
 			initialVal: 0,
 			expected:   100, // Reaches target
@@ -65,7 +65,7 @@ func TestMetricRamp_Emit(t *testing.T) {
 				Duration: 10 * time.Minute,
 			},
 			runState: state.RunState{
-				Now: 15 * time.Minute,
+				Tick: 15 * time.Minute,
 			},
 			initialVal: 0,
 			expected:   100, // Exceeds duration, clamps to target
@@ -78,7 +78,7 @@ func TestMetricRamp_Emit(t *testing.T) {
 				Duration: 10 * time.Minute,
 			},
 			runState: state.RunState{
-				Now: 5 * time.Minute,
+				Tick: 5 * time.Minute,
 			},
 			initialVal: 0,
 			expected:   50, // Halfway through the duration, reverse direction

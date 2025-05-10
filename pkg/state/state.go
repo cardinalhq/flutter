@@ -20,7 +20,7 @@ import (
 )
 
 type RunState struct {
-	Now           time.Duration
+	Tick          time.Duration
 	Wallclock     time.Time
 	Duration      time.Duration
 	RND           *rand.Rand

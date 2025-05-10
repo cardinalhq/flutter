@@ -16,7 +16,6 @@ package commands
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -35,11 +34,11 @@ var (
 	// these will hold all --config and --timeline values
 	configPaths   []string
 	timelineFiles []string
-	dumpConfig    bool
 	dryrun        bool
 	from          time.Duration
 	emitJson      bool
 	emitDebug     bool
+	dumpActions   bool
 )
 
 func init() {
@@ -50,10 +49,6 @@ func init() {
 	// --timeline / -t can be specified multiple times
 	SimulateCmd.Flags().
 		StringArrayVarP(&timelineFiles, "timeline", "t", nil, "Timeline file(s) to parse (repeatable)")
-
-	// --dump-config will dump the merged config to stdout
-	SimulateCmd.Flags().
-		BoolVar(&dumpConfig, "dump-config", false, "Dump the merged config to stdout and exit")
 
 	// --dryrun will not actually run the simulation
 	SimulateCmd.Flags().
@@ -69,10 +64,12 @@ func init() {
 
 	// --debug will show the output timeline in JSON format
 	SimulateCmd.Flags().
-		BoolVar(&emitDebug, "debug", false, "Dump the timeline in JSON format")
+		BoolVar(&emitDebug, "debug", false, "Dump the OpenTelemetry payloads in JSON format")
 
-		// require at least one config
-	_ = SimulateCmd.MarkFlagRequired("config")
+	// --dump-actions will show the actions in JSON format
+	SimulateCmd.Flags().
+		BoolVar(&dumpActions, "dump-actions", false, "Dump the actions in JSON format and exit")
+	// --dump-metrics will show the metrics in JSON format
 }
 
 var SimulateCmd = &cobra.Command{
@@ -85,10 +82,6 @@ var SimulateCmd = &cobra.Command{
 }
 
 func runSimulate(configs, timelines []string) error {
-	if len(configs) == 0 {
-		return errors.New("no --config files provided")
-	}
-
 	// load and merge all config files in order
 	cfg, err := config.LoadConfigs(configs)
 	if err != nil {
@@ -111,12 +104,10 @@ func runSimulate(configs, timelines []string) error {
 		}
 	}
 
-	if dumpConfig {
-		b, err := config.MarshalYAML(cfg)
-		if err != nil {
-			return fmt.Errorf("error marshalling config to YAML: %w", err)
+	if dumpActions {
+		if err := rscript.Dump(os.Stdout); err != nil {
+			return fmt.Errorf("error dumping actions: %w", err)
 		}
-		fmt.Println(string(b))
 		return nil
 	}
 

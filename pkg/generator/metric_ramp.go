@@ -96,7 +96,7 @@ func (m *MetricRamp) Reconfigure(at time.Duration, is map[string]any) error {
 }
 
 func (m *MetricRamp) Emit(rs *state.RunState, value float64) float64 {
-	v := intrerpolate(m.spec.Start, m.spec.Target, m.at, rs.Now, m.spec.Duration, m.spec.PrestartZero, m.spec.PostEndZero)
+	v := intrerpolate(m.spec.Start, m.spec.Target, m.at, rs.Tick, m.spec.Duration, m.spec.PrestartZero, m.spec.PostEndZero)
 	return v + value
 }
 

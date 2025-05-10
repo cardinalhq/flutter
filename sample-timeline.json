@@ -23,7 +23,7 @@
               "target": 100
             },
             {
-              "end_ts": "40m",
+              "end_ts": "35m",
               "target": 150
             },
             {
@@ -41,10 +41,14 @@
           },
           "timeline": [
             {
-              "start_ts": "30m",
-              "end_ts": "40m",
+              "start_ts": "10m",
+              "end_ts": "20m",
               "start": 200,
               "target": 200
+            },
+            {
+              "start_ts": "20m",
+              "disabled": true
             }
           ]
         }
@@ -95,6 +99,10 @@
               "end_ts": "40m",
               "start": 200,
               "target": 200
+            },
+            {
+              "start_ts": "40m",
+              "disabled": true
             }
           ]
         }

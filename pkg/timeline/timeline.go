@@ -48,9 +48,10 @@ type Variant struct {
 }
 
 type Segment struct {
+	Type    string          `json:"type"`
 	StartTs config.Duration `json:"start_ts"` // optional on segments other than first
 	EndTs   config.Duration `json:"end_ts"`
-	Start   float64         `json:"start,omitempty"` // optional
+	Start   *float64        `json:"start,omitempty"` // optional
 	Target  float64         `json:"target"`
 }
 
@@ -59,6 +60,17 @@ func ParseTimeline(b []byte) (*Timeline, error) {
 	if err := json.Unmarshal(b, &timeline); err != nil {
 		return nil, err
 	}
+
+	for _, metric := range timeline.Metrics {
+		for _, variant := range metric.Variants {
+			for i := range variant.Timeline {
+				if variant.Timeline[i].Type == "" {
+					variant.Timeline[i].Type = "segment"
+				}
+			}
+		}
+	}
+
 	return &timeline, nil
 }
 
@@ -73,26 +85,23 @@ func (t *Timeline) MergeIntoScript(rs *script.Script) error {
 
 func mergeMetric(rs *script.Script, metric Metric) error {
 	for _, variant := range metric.Variants {
-		id := makeID(metric, variant)
-		frequency := getFrequency(metric.Frequency)
-		generators := generateGeneratorIDs(id, len(variant.Timeline))
 		if len(variant.Timeline) == 0 {
 			return nil
 		}
 
-		// Ensure the timeline is sorted by start time
-		slices.SortFunc(variant.Timeline, func(a, b Segment) int {
-			if a.StartTs.Get() < b.StartTs.Get() {
-				return -1
-			}
-			if a.StartTs.Get() > b.StartTs.Get() {
-				return 1
-			}
-			return 0
-		})
-
+		id := makeID(metric, variant)
+		frequency := getFrequency(metric.Frequency)
+		generators := generateGeneratorIDs(id, variant.Timeline)
 		firstAt := variant.Timeline[0].StartTs.Get()
-		lastAt := variant.Timeline[len(variant.Timeline)-1].EndTs.Get()
+		lastAt := time.Duration(0)
+		for _, tl := range variant.Timeline {
+			if tl.Type == "segment" && tl.EndTs.Get() > lastAt {
+				lastAt = tl.EndTs.Get()
+			}
+		}
+		if lastAt == 0 {
+			return fmt.Errorf("lastAt is 0 for metric %s", id)
+		}
 
 		if err := addMetricToConfig(rs, id, metric, variant, frequency, generators, firstAt, lastAt); err != nil {
 			return err
@@ -116,10 +125,15 @@ func getFrequency(frequency config.Duration) time.Duration {
 	return frequency.Get()
 }
 
-func generateGeneratorIDs(id string, timelineLength int) []string {
+func generateGeneratorIDs(id string, timeline []Segment) []string {
 	generators := []string{id + "_noise"}
-	for i := range timelineLength {
-		generators = append(generators, id+"_ramp_"+strconv.Itoa(i))
+	counter := 0
+	for _, tl := range timeline {
+		if tl.Type != "segment" {
+			continue
+		}
+		generators = append(generators, id+"_ramp_"+strconv.Itoa(counter))
+		counter++
 	}
 	return generators
 }
@@ -130,7 +144,7 @@ func addMetricToConfig(rs *script.Script, id string, metric Metric, variant Vari
 		To:   endAt,
 		Name: id,
 		Type: "metric",
-		Spec: specToMap(metricproducer.MetricGaugeSpec{
+		Spec: specToMap(metricproducer.MetricGauge{
 			MetricProducerSpec: metricproducer.MetricProducerSpec{
 				Name:      metric.Name,
 				Type:      metric.Type,
@@ -170,12 +184,45 @@ func addTimelineToScript(rs *script.Script, id string, timeline []Segment) error
 	}
 
 	startAt := timeline[0].StartTs.Get()
-	startValue := timeline[0].Start
+	startValue := 0.0
+	if timeline[0].Start != nil {
+		startValue = *(timeline[0].Start)
+	}
 	dpCount := len(timeline)
+	disabled := false
+
 	for i, dp := range timeline {
+		if dp.StartTs.Get() != 0 {
+			startAt = dp.StartTs.Get()
+		}
+		if dp.Start != nil {
+			startValue = *(dp.Start)
+		}
+		if dp.Type == "disable" {
+			action := scriptaction.ScriptAction{
+				At:   dp.StartTs.Get(),
+				Name: id,
+				Type: "disableMetric",
+			}
+			disabled = true
+			rs.AddAction(action)
+			continue
+		}
+		if dp.Type != "segment" {
+			return fmt.Errorf("unknown segment type %s for metric %s", dp.Type, id)
+		}
 		duration := dp.EndTs.Get() - startAt
 		if duration <= 0 {
 			duration = time.Second
+		}
+		if disabled {
+			action := scriptaction.ScriptAction{
+				At:   startAt,
+				Name: id,
+				Type: "enableMetric",
+			}
+			rs.AddAction(action)
+			disabled = false
 		}
 		action := scriptaction.ScriptAction{
 			Name: id + "_ramp_" + strconv.Itoa(i),

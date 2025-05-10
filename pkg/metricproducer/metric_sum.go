@@ -17,7 +17,6 @@ package metricproducer
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/cardinalhq/oteltools/signalbuilder"
 	"github.com/mitchellh/mapstructure"
@@ -26,58 +25,53 @@ import (
 
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/generator"
+	"github.com/cardinalhq/flutter/pkg/scriptaction"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
-type MetricSumSpec struct {
-	MetricProducerSpec `mapstructure:",squash"`
-}
-
 type MetricSum struct {
-	spec MetricSumSpec
+	MetricProducerSpec `mapstructure:",squash" yaml:",inline" json:",inline"`
 }
 
 var _ MetricExporter = (*MetricSum)(nil)
 
-func NewMetricSum(generators map[string]generator.MetricGenerator, name string, to time.Duration, spec map[string]any) (*MetricSum, error) {
-	SumSpec := MetricSumSpec{
+func NewMetricSum(generators map[string]generator.MetricGenerator, name string, mes scriptaction.ScriptAction) (*MetricSum, error) {
+	sumSpec := MetricSum{
 		MetricProducerSpec: MetricProducerSpec{
 			Frequency: DefaultFrequency,
 			Name:      name,
-			To:        to,
+			To:        mes.To,
 		},
 	}
 	if name == "" {
 		return nil, errors.New("invalid metric name: " + name)
 	}
 
-	decoder, err := config.NewMapstructureDecoder(&SumSpec)
+	decoder, err := config.NewMapstructureDecoder(&sumSpec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create decoder: %w", err)
 	}
-	if err := decoder.Decode(spec); err != nil {
+	if err := decoder.Decode(mes.Spec); err != nil {
 		return nil, fmt.Errorf("unable to decode MetricSumSpec for %q: %w", name, err)
 	}
 
-	if len(SumSpec.Generators) == 0 {
+	if len(sumSpec.Generators) == 0 {
 		return nil, errors.New("no generators specified for metric sum: " + name)
 	}
-	for _, generatorName := range SumSpec.Generators {
+	for _, generatorName := range sumSpec.Generators {
 		if _, ok := generators[generatorName]; !ok {
 			return nil, errors.New("unknown generator: " + generatorName)
 		}
 	}
 
-	return &MetricSum{
-		spec: SumSpec,
-	}, nil
+	return &sumSpec, nil
 }
 
 func (m *MetricSum) Reconfigure(generators map[string]generator.MetricGenerator, spec map[string]any) error {
-	if err := mapstructure.Decode(spec, &m.spec); err != nil {
+	if err := mapstructure.Decode(spec, m); err != nil {
 		return err
 	}
-	for _, generatorName := range m.spec.Generators {
+	for _, generatorName := range m.Generators {
 		if _, ok := generators[generatorName]; !ok {
 			return errors.New("unknown generator: " + generatorName)
 		}
@@ -85,43 +79,36 @@ func (m *MetricSum) Reconfigure(generators map[string]generator.MetricGenerator,
 	return nil
 }
 
-func shouldEmitMetric(state *state.RunState, to time.Duration) bool {
-	return to == 0 || state.Now <= to
-}
-
 func (m *MetricSum) Emit(generators map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error {
-	if !shouldEmitMetric(state, m.spec.To) {
+	if !m.ShouldEmit(state) {
 		return nil
 	}
-	if state.Now < m.spec.lastEmitted+m.spec.Frequency {
-		return nil
-	}
-	m.spec.lastEmitted = state.Now
+	m.lastEmitted = state.Tick
 
-	value, err := calculateValue(generators, m.spec.Generators, state)
+	value, err := calculateValue(generators, m.Generators, state)
 	if err != nil {
 		return err
 	}
 
 	rattr := pcommon.NewMap()
-	if err := rattr.FromRaw(m.spec.Attributes.Resource); err != nil {
+	if err := rattr.FromRaw(m.Attributes.Resource); err != nil {
 		return fmt.Errorf("failed to create resource attributes: %w", err)
 	}
 	r := mb.Resource(rattr)
 
 	sattr := pcommon.NewMap()
-	if err := sattr.FromRaw(m.spec.Attributes.Scope); err != nil {
+	if err := sattr.FromRaw(m.Attributes.Scope); err != nil {
 		return fmt.Errorf("failed to create scope attributes: %w", err)
 	}
 	s := r.Scope(sattr)
 
-	mm, err := s.Metric(m.spec.Name, "unit", pmetric.MetricTypeSum)
+	mm, err := s.Metric(m.Name, "unit", pmetric.MetricTypeSum)
 	if err != nil {
 		return fmt.Errorf("failed to create metric: %w", err)
 	}
 
 	dattr := pcommon.NewMap()
-	if err := dattr.FromRaw(m.spec.Attributes.Datapoint); err != nil {
+	if err := dattr.FromRaw(m.Attributes.Datapoint); err != nil {
 		return fmt.Errorf("failed to create datapoint attributes: %w", err)
 	}
 

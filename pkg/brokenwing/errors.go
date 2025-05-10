@@ -12,14 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package scriptaction
+package brokenwing
 
-import "time"
+import (
+	"errors"
+	"fmt"
+)
 
-type ScriptAction struct {
-	At   time.Duration  `mapstructure:"at" yaml:"at" json:"at"`
-	To   time.Duration  `mapstructure:"to,omitempty" yaml:"to,omitempty" json:"to,omitempty"`
-	Name string         `mapstructure:"name" yaml:"name" json:"name"`
-	Type string         `mapstructure:"type" yaml:"type" json:"type"`
-	Spec map[string]any `mapstructure:"spec" yaml:"spec" json:"spec"`
+// Custom error types
+var (
+	ErrInvalidMetricName = errors.New("invalid metric name")
+	ErrNoGenerators      = errors.New("no generators specified for metric gauge")
+	ErrUnknownGenerator  = errors.New("unknown generator")
+)
+
+type DecodeError struct {
+	Name string
+	Err  error
+}
+
+func (e *DecodeError) Error() string {
+	return fmt.Sprintf("unable to decode MetricGaugeSpec for %q: %v", e.Name, e.Err)
+}
+
+func (e *DecodeError) Unwrap() error {
+	return e.Err
 }

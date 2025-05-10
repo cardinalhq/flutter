@@ -37,12 +37,16 @@ type OTLPDestination struct {
 	Timeout  time.Duration     `mapstructure:"timeout" yaml:"timeout" json:"timeout"`
 }
 
-func LoadConfigs(fnames []string) (*Config, error) {
-	merged := &Config{
+func DefaultConfig() *Config {
+	return &Config{
 		OTLPDestination: OTLPDestination{
 			Timeout: 5 * time.Second,
 		},
 	}
+}
+
+func LoadConfigs(fnames []string) (*Config, error) {
+	merged := DefaultConfig()
 	for _, fname := range fnames {
 		slog.Info("Loading config", "file", fname)
 		config, err := loadConfig(fname)

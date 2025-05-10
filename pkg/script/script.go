@@ -152,13 +152,13 @@ func run(ctx context.Context, cfg *config.Config, rscript *Script) error {
 	}
 	seconds := int64(rs.Duration.Seconds())
 	for now := range seconds + 1 {
-		rs.Now = time.Duration(now) * time.Second
-		rs.Wallclock = cfg.WallclockStart.Add(rs.Now)
+		rs.Tick = time.Duration(now) * time.Second
+		rs.Wallclock = cfg.WallclockStart.Add(rs.Tick)
 		err := tick(ctx, rscript, rs)
 		if err != nil {
 			return fmt.Errorf("error running script: %w", err)
 		}
-		if !cfg.Dryrun && rs.Now < rscript.duration {
+		if !cfg.Dryrun && rs.Tick < rscript.duration {
 			time.Sleep(1 * time.Second)
 		}
 	}
@@ -167,7 +167,7 @@ func run(ctx context.Context, cfg *config.Config, rscript *Script) error {
 
 func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 	if len(rscript.actions) > rs.CurrentAction {
-		if rscript.actions[rs.CurrentAction].At <= rs.Now {
+		if rscript.actions[rs.CurrentAction].At <= rs.Tick {
 			action := rscript.actions[rs.CurrentAction]
 			rs.CurrentAction++
 			switch action.Type {
@@ -181,15 +181,28 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 					return fmt.Errorf("error reconfiguring metric generator: %s", action.Name)
 				}
 			case "metric":
-				_, ok := rscript.metricProducers[action.Name]
-				if ok {
-					return fmt.Errorf("metric exporter already exists: %s", action.Name)
+				if producer, ok := rscript.metricProducers[action.Name]; ok {
+					if err := producer.Reconfigure(rscript.generators, action.Spec); err != nil {
+						return fmt.Errorf("error reconfiguring metric exporter: %s", action.Name)
+					}
 				}
 				metric, err := metricproducer.CreateMetricExporter(rscript.generators, action.Name, action)
 				if err != nil {
 					return fmt.Errorf("error creating metric exporter: %v", err)
 				}
 				rscript.metricProducers[action.Name] = metric
+			case "disableMetric":
+				if producer, ok := rscript.metricProducers[action.Name]; ok {
+					producer.Disable()
+				} else {
+					return fmt.Errorf("metric producer not found: %s", action.Name)
+				}
+			case "enableMetric":
+				if producer, ok := rscript.metricProducers[action.Name]; ok {
+					producer.Enable()
+				} else {
+					return fmt.Errorf("metric producer not found: %s", action.Name)
+				}
 			}
 		}
 	}
@@ -200,14 +213,18 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 	}
 	mb := signalbuilder.NewMetricsBuilder()
 	for _, name := range metricNames {
-		err := rscript.metricProducers[name].Emit(rscript.generators, rs, mb)
+		producer, ok := rscript.metricProducers[name]
+		if !ok {
+			return fmt.Errorf("metric producer not found: %s", name)
+		}
+		err := producer.Emit(rscript.generators, rs, mb)
 		if err != nil {
 			return fmt.Errorf("error emitting metric: %s", name)
 		}
 	}
 	md := mb.Build()
 
-	if rs.Now >= rscript.from {
+	if rs.Tick >= rscript.from {
 		for _, emitter := range rscript.emitters {
 			if err := emitter.Emit(ctx, rs, md); err != nil {
 				return fmt.Errorf("error emitting metric: %w", err)
