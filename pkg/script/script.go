@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -186,22 +187,27 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 						return fmt.Errorf("error reconfiguring metric exporter: %s", action.Name)
 					}
 				}
-				metric, err := metricproducer.CreateMetricExporter(rscript.generators, action.Name, action)
+				producer, err := metricproducer.CreateMetricExporter(rscript.generators, action.Name, action)
 				if err != nil {
 					return fmt.Errorf("error creating metric exporter: %v", err)
 				}
-				rscript.metricProducers[action.Name] = metric
+				rscript.metricProducers[action.Name] = producer
 			case "disableMetric":
 				if producer, ok := rscript.metricProducers[action.Name]; ok {
 					producer.Disable()
 				} else {
-					return fmt.Errorf("metric producer not found: %s", action.Name)
+					names := make([]string, 0, len(rscript.metricProducers))
+					for name := range rscript.metricProducers {
+						names = append(names, name)
+					}
+					slog.Info("names", "names", names)
+					return fmt.Errorf("disableMetric producer not found: %s", action.Name)
 				}
 			case "enableMetric":
 				if producer, ok := rscript.metricProducers[action.Name]; ok {
 					producer.Enable()
 				} else {
-					return fmt.Errorf("metric producer not found: %s", action.Name)
+					return fmt.Errorf("enableMetric producer not found: %s", action.Name)
 				}
 			}
 		}

@@ -86,7 +86,7 @@ func (t *Timeline) MergeIntoScript(rs *script.Script) error {
 func mergeMetric(rs *script.Script, metric Metric) error {
 	for _, variant := range metric.Variants {
 		if len(variant.Timeline) == 0 {
-			return nil
+			return fmt.Errorf("no timeline for metric %s", metric.Name)
 		}
 
 		id := makeID(metric, variant)
@@ -188,10 +188,11 @@ func addTimelineToScript(rs *script.Script, id string, timeline []Segment) error
 	if timeline[0].Start != nil {
 		startValue = *(timeline[0].Start)
 	}
-	dpCount := len(timeline)
 	disabled := false
 
-	for i, dp := range timeline {
+	rampCounter := 0
+
+	for _, dp := range timeline {
 		if dp.StartTs.Get() != 0 {
 			startAt = dp.StartTs.Get()
 		}
@@ -225,20 +226,19 @@ func addTimelineToScript(rs *script.Script, id string, timeline []Segment) error
 			disabled = false
 		}
 		action := scriptaction.ScriptAction{
-			Name: id + "_ramp_" + strconv.Itoa(i),
+			Name: id + "_ramp_" + strconv.Itoa(rampCounter),
 			Type: "metricGenerator",
 			At:   startAt,
 			Spec: specToMap(generator.MetricRampSpec{
 				MetricGeneratorSpec: generator.MetricGeneratorSpec{
 					Type: "ramp",
 				},
-				Start:        startValue,
-				Target:       dp.Target,
-				Duration:     duration,
-				PrestartZero: i != 0,
-				PostEndZero:  i > 0 && i != dpCount-1,
+				Start:    startValue,
+				Target:   dp.Target,
+				Duration: duration,
 			}),
 		}
+		rampCounter++
 		startValue = dp.Target
 		startAt = dp.EndTs.Get()
 		rs.AddAction(action)

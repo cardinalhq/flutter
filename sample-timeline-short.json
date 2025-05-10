@@ -24,8 +24,19 @@
           "timeline": [
             {
               "type": "segment",
-              "start_ts": "1m",
-              "end_ts": "1m30s",
+              "start_ts": "50s",
+              "end_ts": "80s",
+              "start": 200,
+              "target": 200
+            },
+            {
+              "start_ts": "80s",
+              "type": "disable"
+            },
+            {
+              "type": "segment",
+              "start_ts": "100s",
+              "end_ts": "120s",
               "start": 200,
               "target": 200
             }
