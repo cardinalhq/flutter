@@ -53,19 +53,19 @@ func TestParseTimeline(t *testing.T) {
 									"type": "segment",
 									"start_ts": "0s",
 									"end_ts": "1800s",
-									"median": 100
+									"target": 100
 								},
 								{
 									"type": "segment",
 									"start_ts": "1800s",
 									"end_ts": "2400s",
-									"median": 150
+									"target": 150
 								},
 								{
 									"type": "segment",
 									"start_ts": "2400s",
 									"end_ts": "2460s",
-									"median": 100
+									"target": 100
 								}
 							]
 						},
@@ -81,7 +81,7 @@ func TestParseTimeline(t *testing.T) {
 									"type": "segment",
 									"start_ts": "1800s",
 									"end_ts": "2400s",
-									"median": 200
+									"target": 200
 								}
 							]
 						}
@@ -108,19 +108,19 @@ func TestParseTimeline(t *testing.T) {
 									"type": "segment",
 									"start_ts": "0s",
 									"end_ts": "1800s",
-									"median": 100
+									"target": 100
 								},
 								{
 									"type": "segment",
 									"start_ts": "1800s",
 									"end_ts": "2400s",
-									"median": 150
+									"target": 150
 								},
 								{
 									"type": "segment",
 									"start_ts": "2400s",
 									"end_ts": "2460s",
-									"median": 100
+									"target": 100
 								}
 							]
 						},
@@ -136,7 +136,7 @@ func TestParseTimeline(t *testing.T) {
 									"type": "segment",
 									"start_ts": "1800s",
 									"end_ts": "2400s",
-									"median": 200
+									"target": 200
 								}
 							]
 						}

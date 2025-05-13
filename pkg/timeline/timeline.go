@@ -15,7 +15,7 @@
 package timeline
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"slices"
 	"strconv"
@@ -84,7 +84,7 @@ type TraceOverride struct {
 
 func ParseTimeline(b []byte) (*Timeline, error) {
 	var timeline Timeline
-	if err := json.Unmarshal(b, &timeline); err != nil {
+	if err := config.JSONDecode(bytes.NewReader(b), &timeline); err != nil {
 		return nil, err
 	}
 

@@ -39,7 +39,7 @@ type Script struct {
 	actions          []scriptaction.ScriptAction
 	metricGenerators map[string]generator.MetricGenerator
 	metricProducers  map[string]metricproducer.MetricExporter
-	metricEmitters   []emitter.Emitter
+	emitters         []emitter.Emitter
 	duration         time.Duration
 	from             time.Duration
 }
@@ -57,7 +57,7 @@ func (s *Script) AddAction(action scriptaction.ScriptAction) {
 }
 
 func (s *Script) AddEmitter(emitter emitter.Emitter) {
-	s.metricEmitters = append(s.metricEmitters, emitter)
+	s.emitters = append(s.emitters, emitter)
 }
 
 func (s *Script) Duration() time.Duration {
@@ -231,7 +231,7 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 	md := mb.Build()
 
 	if rs.Tick >= rscript.from {
-		for _, emitter := range rscript.metricEmitters {
+		for _, emitter := range rscript.emitters {
 			if err := emitter.EmitMetrics(ctx, rs, md); err != nil {
 				return fmt.Errorf("error emitting metric: %w", err)
 			}
