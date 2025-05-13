@@ -17,6 +17,7 @@ package timeline
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 
@@ -139,4 +140,21 @@ func makeMapID(m map[string]any) string {
 		id += keys[k] + "=" + fmt.Sprintf("%v", m[keys[k]]) + "|"
 	}
 	return id
+}
+
+// Take the values in A, merge the values from B, returning the merged map.
+// If a key exists in both A and B, the value from B is used.
+// If the value in B is nil, the key is removed from A.
+// A new map is returned, and A is not modified.
+func ApplyMap(a, b map[string]any) map[string]any {
+	ret := map[string]any{}
+	maps.Copy(ret, a)
+	for k, v := range b {
+		if v == nil {
+			delete(ret, k)
+			continue
+		}
+		ret[k] = v
+	}
+	return ret
 }
