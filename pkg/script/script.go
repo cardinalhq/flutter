@@ -28,27 +28,27 @@ import (
 	"github.com/cardinalhq/oteltools/signalbuilder"
 
 	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/emitter"
 	"github.com/cardinalhq/flutter/pkg/generator"
-	"github.com/cardinalhq/flutter/pkg/metricemitter"
 	"github.com/cardinalhq/flutter/pkg/metricproducer"
 	"github.com/cardinalhq/flutter/pkg/scriptaction"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 type Script struct {
-	actions         []scriptaction.ScriptAction
-	generators      map[string]generator.MetricGenerator
-	metricProducers map[string]metricproducer.MetricExporter
-	emitters        []metricemitter.Emitter
-	duration        time.Duration
-	from            time.Duration
+	actions          []scriptaction.ScriptAction
+	metricGenerators map[string]generator.MetricGenerator
+	metricProducers  map[string]metricproducer.MetricExporter
+	metricEmitters   []emitter.Emitter
+	duration         time.Duration
+	from             time.Duration
 }
 
 func NewScript() *Script {
 	return &Script{
-		actions:         []scriptaction.ScriptAction{},
-		generators:      map[string]generator.MetricGenerator{},
-		metricProducers: map[string]metricproducer.MetricExporter{},
+		actions:          []scriptaction.ScriptAction{},
+		metricGenerators: map[string]generator.MetricGenerator{},
+		metricProducers:  map[string]metricproducer.MetricExporter{},
 	}
 }
 
@@ -56,8 +56,8 @@ func (s *Script) AddAction(action scriptaction.ScriptAction) {
 	s.actions = append(s.actions, action)
 }
 
-func (s *Script) AddEmitter(emitter metricemitter.Emitter) {
-	s.emitters = append(s.emitters, emitter)
+func (s *Script) AddEmitter(emitter emitter.Emitter) {
+	s.metricEmitters = append(s.metricEmitters, emitter)
 }
 
 func (s *Script) Duration() time.Duration {
@@ -114,7 +114,7 @@ func (s *Script) Prepare(cfg *config.Config) error {
 			if err != nil {
 				return errors.New("Error creating metric generator: " + err.Error())
 			}
-			s.generators[action.Name] = g
+			s.metricGenerators[action.Name] = g
 		default:
 			// Ignore other types of actions for now
 		}
@@ -173,7 +173,7 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 			rs.CurrentAction++
 			switch action.Type {
 			case "metricGenerator":
-				g, ok := rscript.generators[action.Name]
+				g, ok := rscript.metricGenerators[action.Name]
 				if !ok {
 					return fmt.Errorf("metric generator not found: %s", action.Name)
 				}
@@ -183,11 +183,11 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 				}
 			case "metric":
 				if producer, ok := rscript.metricProducers[action.Name]; ok {
-					if err := producer.Reconfigure(rscript.generators, action.Spec); err != nil {
+					if err := producer.Reconfigure(rscript.metricGenerators, action.Spec); err != nil {
 						return fmt.Errorf("error reconfiguring metric exporter: %s", action.Name)
 					}
 				}
-				producer, err := metricproducer.CreateMetricExporter(rscript.generators, action.Name, action)
+				producer, err := metricproducer.CreateMetricExporter(rscript.metricGenerators, action.Name, action)
 				if err != nil {
 					return fmt.Errorf("error creating metric exporter: %v", err)
 				}
@@ -223,7 +223,7 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 		if !ok {
 			return fmt.Errorf("metric producer not found: %s", name)
 		}
-		err := producer.Emit(rscript.generators, rs, mb)
+		err := producer.Emit(rscript.metricGenerators, rs, mb)
 		if err != nil {
 			return fmt.Errorf("error emitting metric: %s", name)
 		}
@@ -231,7 +231,7 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 	md := mb.Build()
 
 	if rs.Tick >= rscript.from {
-		for _, emitter := range rscript.emitters {
+		for _, emitter := range rscript.metricEmitters {
 			if err := emitter.Emit(ctx, rs, md); err != nil {
 				return fmt.Errorf("error emitting metric: %w", err)
 			}

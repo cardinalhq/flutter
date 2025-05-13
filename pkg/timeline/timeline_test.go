@@ -20,10 +20,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cardinalhq/flutter/pkg/config"
-	"github.com/cardinalhq/flutter/pkg/script"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/script"
 )
 
 func TestParseTimeline(t *testing.T) {
