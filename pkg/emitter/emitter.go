@@ -18,10 +18,12 @@ import (
 	"context"
 
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 type Emitter interface {
 	EmitMetrics(ctx context.Context, state *state.RunState, m pmetric.Metrics) error
+	EmitTraces(ctx context.Context, state *state.RunState, t ptrace.Traces) error
 }
