@@ -32,6 +32,7 @@ import (
 
 type Timeline struct {
 	Metrics []Metric `json:"metrics"`
+	Traces  []Trace  `json:"traces,omitempty"`
 }
 
 type Metric struct {
@@ -53,6 +54,38 @@ type Segment struct {
 	EndTs   config.Duration `json:"end_ts"`
 	Start   *float64        `json:"start,omitempty"` // optional
 	Target  float64         `json:"target"`
+}
+
+type Trace struct {
+	Ref      string         `json:"ref"`
+	Name     string         `json:"name"`
+	Exemplar Span           `json:"exemplar"`
+	Variants []TraceVariant `json:"variants"`
+}
+
+type Span struct {
+	Ref                string          `json:"ref"`
+	Name               string          `json:"name"`
+	Kind               string          `json:"kind"`
+	StartTs            config.Duration `json:"start_ts"`
+	Duration           config.Duration `json:"duration"`
+	Error              bool            `json:"error"`
+	ResourceAttributes map[string]any  `json:"resourceAttributes"`
+	Attributes         map[string]any  `json:"attributes"`
+	Children           []Span          `json:"children"`
+}
+
+type TraceVariant struct {
+	Ref       string                   `json:"ref"`
+	Name      string                   `json:"name"`
+	Timeline  []Segment                `json:"timeline"`
+	Overrides map[string]TraceOverride `json:"overrides,omitempty"`
+}
+
+type TraceOverride struct {
+	Duration   *config.Duration `json:"duration,omitempty"`
+	Error      *bool            `json:"error,omitempty"`
+	Attributes map[string]any   `json:"attributes,omitempty"`
 }
 
 func ParseTimeline(b []byte) (*Timeline, error) {
