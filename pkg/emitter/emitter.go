@@ -23,5 +23,5 @@ import (
 )
 
 type Emitter interface {
-	Emit(ctx context.Context, state *state.RunState, m pmetric.Metrics) error
+	EmitMetrics(ctx context.Context, state *state.RunState, m pmetric.Metrics) error
 }

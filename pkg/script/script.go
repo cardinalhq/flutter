@@ -232,7 +232,7 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 
 	if rs.Tick >= rscript.from {
 		for _, emitter := range rscript.metricEmitters {
-			if err := emitter.Emit(ctx, rs, md); err != nil {
+			if err := emitter.EmitMetrics(ctx, rs, md); err != nil {
 				return fmt.Errorf("error emitting metric: %w", err)
 			}
 		}

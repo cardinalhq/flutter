@@ -25,12 +25,12 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 )
 
-type DebugMetricEmitter struct {
+type DebugEmitter struct {
 	out io.Writer
 }
 
-func NewDebugMetricEmitter(out io.Writer) *DebugMetricEmitter {
-	return &DebugMetricEmitter{
+func NewDebugEmitter(out io.Writer) *DebugEmitter {
+	return &DebugEmitter{
 		out: out,
 	}
 }
@@ -41,7 +41,7 @@ type DebugMessage struct {
 	Metrics  any       `json:"metrics"`
 }
 
-func (e *DebugMetricEmitter) Emit(_ context.Context, rs *state.RunState, md pmetric.Metrics) error {
+func (e *DebugEmitter) EmitMetrics(_ context.Context, rs *state.RunState, md pmetric.Metrics) error {
 	if md.DataPointCount() == 0 {
 		return nil
 	}

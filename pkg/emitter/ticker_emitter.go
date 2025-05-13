@@ -33,7 +33,7 @@ func NewTickerEmitter(out io.Writer) *TickerEmitter {
 	}
 }
 
-func (e *TickerEmitter) Emit(_ context.Context, rs *state.RunState, _ pmetric.Metrics) error {
+func (e *TickerEmitter) EmitMetrics(_ context.Context, rs *state.RunState, _ pmetric.Metrics) error {
 	percent := rs.Tick.Seconds() / rs.Duration.Seconds() * 100
 	fmt.Fprintf(e.out, "Tick %d %.2f%% %s\r", int(rs.Tick.Seconds()), percent, rs.Wallclock.Format("2006-01-02 15:04:05"))
 	return nil

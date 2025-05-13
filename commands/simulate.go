@@ -118,11 +118,11 @@ func runSimulate(configs, timelines []string) error {
 	}
 
 	if emitJson {
-		rscript.AddEmitter(emitter.NewJSONMetricEmitter(os.Stdout))
+		rscript.AddEmitter(emitter.NewJSONEmitter(os.Stdout))
 	}
 
 	if emitDebug {
-		rscript.AddEmitter(emitter.NewDebugMetricEmitter(os.Stdout))
+		rscript.AddEmitter(emitter.NewDebugEmitter(os.Stdout))
 	}
 
 	if cfg.OTLPDestination.Endpoint != "" && !cfg.Dryrun {
@@ -130,7 +130,7 @@ func runSimulate(configs, timelines []string) error {
 		client := &http.Client{
 			Timeout: cfg.OTLPDestination.Timeout,
 		}
-		otlp, err := emitter.NewOTLPMetricEmitter(client, cfg.OTLPDestination.Endpoint, cfg.OTLPDestination.Headers)
+		otlp, err := emitter.NewOTLPEmitter(client, cfg.OTLPDestination.Endpoint, cfg.OTLPDestination.Headers)
 		if err != nil {
 			return fmt.Errorf("error creating OTLP emitter: %w", err)
 		}

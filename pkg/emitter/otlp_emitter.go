@@ -27,24 +27,24 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric/pmetricotlp"
 )
 
-type OTLPMetricEmitter struct {
+type OTLPEmitter struct {
 	client   *http.Client
 	endpoint string
 	headers  map[string]string
 }
 
-func NewOTLPMetricEmitter(client *http.Client, endpoint string, headers map[string]string) (*OTLPMetricEmitter, error) {
+func NewOTLPEmitter(client *http.Client, endpoint string, headers map[string]string) (*OTLPEmitter, error) {
 	if client == nil {
 		client = http.DefaultClient
 	}
-	return &OTLPMetricEmitter{
+	return &OTLPEmitter{
 		client:   client,
 		endpoint: endpoint,
 		headers:  headers,
 	}, nil
 }
 
-func (e *OTLPMetricEmitter) Emit(ctx context.Context, rs *state.RunState, md pmetric.Metrics) error {
+func (e *OTLPEmitter) EmitMetrics(ctx context.Context, rs *state.RunState, md pmetric.Metrics) error {
 	if md.DataPointCount() == 0 {
 		return nil
 	}

@@ -29,23 +29,23 @@ import (
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
-type JSONMetricEmitter struct {
+type JSONEmitter struct {
 	out io.Writer
 }
 
-func NewJSONMetricEmitter(out io.Writer) *JSONMetricEmitter {
-	return &JSONMetricEmitter{
+func NewJSONEmitter(out io.Writer) *JSONEmitter {
+	return &JSONEmitter{
 		out: out,
 	}
 }
 
 type jsonWrapper struct {
 	Timestamp       time.Time       `json:"timestamp"`
-	MetricsProtobuf string          `json:"metricsProtobuf"`
+	MetricsProtobuf string          `json:"metricsProtobuf,omitempty"`
 	At              config.Duration `json:"at"`
 }
 
-func (e *JSONMetricEmitter) Emit(ctx context.Context, rs *state.RunState, md pmetric.Metrics) error {
+func (e *JSONEmitter) EmitMetrics(ctx context.Context, rs *state.RunState, md pmetric.Metrics) error {
 	if md.DataPointCount() == 0 {
 		return nil
 	}
