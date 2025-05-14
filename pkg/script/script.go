@@ -38,7 +38,7 @@ import (
 type Script struct {
 	actions          []scriptaction.ScriptAction
 	metricGenerators map[string]generator.MetricGenerator
-	metricProducers  map[string]metricproducer.MetricExporter
+	metricProducers  map[string]metricproducer.MetricProducer
 	emitters         []emitter.Emitter
 	duration         time.Duration
 	from             time.Duration
@@ -48,7 +48,7 @@ func NewScript() *Script {
 	return &Script{
 		actions:          []scriptaction.ScriptAction{},
 		metricGenerators: map[string]generator.MetricGenerator{},
-		metricProducers:  map[string]metricproducer.MetricExporter{},
+		metricProducers:  map[string]metricproducer.MetricProducer{},
 	}
 }
 

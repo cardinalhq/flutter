@@ -71,13 +71,13 @@ type Span struct {
 }
 
 type TraceVariant struct {
-	Ref       string                   `json:"ref"`
-	Name      string                   `json:"name"`
-	Timeline  []Segment                `json:"timeline"`
-	Overrides map[string]TraceOverride `json:"overrides,omitempty"`
+	Ref       string                  `json:"ref"`
+	Name      string                  `json:"name"`
+	Timeline  []Segment               `json:"timeline"`
+	Overrides map[string]SpanOverride `json:"overrides,omitempty"`
 }
 
-type TraceOverride struct {
+type SpanOverride struct {
 	Duration   *config.Duration `json:"duration,omitempty"`
 	Error      *bool            `json:"error,omitempty"`
 	Attributes map[string]any   `json:"attributes,omitempty"`
@@ -148,6 +148,12 @@ func makeMapID(m map[string]any) string {
 // A new map is returned, and A is not modified.
 func ApplyMap(a, b map[string]any) map[string]any {
 	ret := map[string]any{}
+	if a == nil {
+		a = map[string]any{}
+	}
+	if b == nil {
+		b = map[string]any{}
+	}
 	maps.Copy(ret, a)
 	for k, v := range b {
 		if v == nil {

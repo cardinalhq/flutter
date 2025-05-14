@@ -458,3 +458,78 @@ func TestTimelineConversion(t *testing.T) {
 		assert.Equal(t, 20*time.Minute, rscript.Duration())
 	})
 }
+
+func TestApplyMap(t *testing.T) {
+	t.Run("merges non-overlapping keys", func(t *testing.T) {
+		a := map[string]any{"foo": 1}
+		b := map[string]any{"bar": 2}
+		result := ApplyMap(a, b)
+		assert.Equal(t, map[string]any{"foo": 1, "bar": 2}, result)
+	})
+
+	t.Run("overwrites overlapping keys", func(t *testing.T) {
+		a := map[string]any{"foo": 1, "bar": 2}
+		b := map[string]any{"bar": 3}
+		result := ApplyMap(a, b)
+		assert.Equal(t, map[string]any{"foo": 1, "bar": 3}, result)
+	})
+
+	t.Run("removes key when value is nil in b", func(t *testing.T) {
+		a := map[string]any{"foo": 1, "bar": 2}
+		b := map[string]any{"bar": nil}
+		result := ApplyMap(a, b)
+		assert.Equal(t, map[string]any{"foo": 1}, result)
+	})
+
+	t.Run("returns new map, does not modify a", func(t *testing.T) {
+		a := map[string]any{"foo": 1}
+		b := map[string]any{"bar": 2}
+		result := ApplyMap(a, b)
+		assert.Equal(t, a, map[string]any{"foo": 1})
+		assert.Equal(t, b, map[string]any{"bar": 2})
+		a["baz"] = 3
+		assert.NotContains(t, result, "baz")
+	})
+
+	t.Run("removes multiple keys with nils", func(t *testing.T) {
+		a := map[string]any{"a": 1, "b": 2, "c": 3}
+		b := map[string]any{"a": nil, "c": nil}
+		result := ApplyMap(a, b)
+		assert.Equal(t, map[string]any{"b": 2}, result)
+	})
+
+	t.Run("empty b returns copy of a", func(t *testing.T) {
+		a := map[string]any{"foo": 1}
+		b := map[string]any{}
+		result := ApplyMap(a, b)
+		assert.Equal(t, a, result)
+	})
+
+	t.Run("empty a returns copy of b", func(t *testing.T) {
+		a := map[string]any{}
+		b := map[string]any{"foo": 2}
+		result := ApplyMap(a, b)
+		assert.Equal(t, b, result)
+	})
+
+	t.Run("both empty returns empty", func(t *testing.T) {
+		a := map[string]any{}
+		b := map[string]any{}
+		result := ApplyMap(a, b)
+		assert.Empty(t, result)
+	})
+
+	t.Run("nil a returns copy of b", func(t *testing.T) {
+		var a map[string]any
+		b := map[string]any{"foo": 2}
+		result := ApplyMap(a, b)
+		assert.Equal(t, b, result)
+	})
+
+	t.Run("nil b returns copy of a", func(t *testing.T) {
+		a := map[string]any{"foo": 1}
+		var b map[string]any
+		result := ApplyMap(a, b)
+		assert.Equal(t, a, result)
+	})
+}

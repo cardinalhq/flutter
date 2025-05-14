@@ -24,6 +24,10 @@ type Duration struct {
 	time.Duration
 }
 
+func DurationFromDuration(d time.Duration) Duration {
+	return Duration{d}
+}
+
 func (d Duration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())
 }

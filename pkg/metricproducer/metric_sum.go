@@ -33,7 +33,7 @@ type MetricSum struct {
 	MetricProducerSpec `mapstructure:",squash" yaml:",inline" json:",inline"`
 }
 
-var _ MetricExporter = (*MetricSum)(nil)
+var _ MetricProducer = (*MetricSum)(nil)
 
 func NewMetricSum(generators map[string]generator.MetricGenerator, name string, mes scriptaction.ScriptAction) (*MetricSum, error) {
 	sumSpec := MetricSum{
