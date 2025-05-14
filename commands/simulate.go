@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cardinalhq/flutter/pkg/config"
-	"github.com/cardinalhq/flutter/pkg/metricemitter"
+	"github.com/cardinalhq/flutter/pkg/emitter"
 	"github.com/cardinalhq/flutter/pkg/script"
 	"github.com/cardinalhq/flutter/pkg/timeline"
 )
@@ -114,15 +114,15 @@ func runSimulate(configs, timelines []string) error {
 	cfg.Dryrun = cfg.Dryrun || dryrun
 
 	if !cfg.Dryrun {
-		rscript.AddEmitter(metricemitter.NewTickerEmitter(os.Stdout))
+		rscript.AddEmitter(emitter.NewTickerEmitter(os.Stdout))
 	}
 
 	if emitJson {
-		rscript.AddEmitter(metricemitter.NewJSONMetricEmitter(os.Stdout))
+		rscript.AddEmitter(emitter.NewJSONEmitter(os.Stdout))
 	}
 
 	if emitDebug {
-		rscript.AddEmitter(metricemitter.NewDebugMetricEmitter(os.Stdout))
+		rscript.AddEmitter(emitter.NewDebugEmitter(os.Stdout))
 	}
 
 	if cfg.OTLPDestination.Endpoint != "" && !cfg.Dryrun {
@@ -130,7 +130,7 @@ func runSimulate(configs, timelines []string) error {
 		client := &http.Client{
 			Timeout: cfg.OTLPDestination.Timeout,
 		}
-		otlp, err := metricemitter.NewOTLPMetricEmitter(client, cfg.OTLPDestination.Endpoint, cfg.OTLPDestination.Headers)
+		otlp, err := emitter.NewOTLPEmitter(client, cfg.OTLPDestination.Endpoint, cfg.OTLPDestination.Headers)
 		if err != nil {
 			return fmt.Errorf("error creating OTLP emitter: %w", err)
 		}

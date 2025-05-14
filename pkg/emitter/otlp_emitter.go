@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package metricemitter
+package emitter
 
 import (
 	"bytes"
@@ -22,29 +22,32 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/cardinalhq/flutter/pkg/state"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/pmetric/pmetricotlp"
+	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.opentelemetry.io/collector/pdata/ptrace/ptraceotlp"
+
+	"github.com/cardinalhq/flutter/pkg/state"
 )
 
-type OTLPMetricEmitter struct {
+type OTLPEmitter struct {
 	client   *http.Client
 	endpoint string
 	headers  map[string]string
 }
 
-func NewOTLPMetricEmitter(client *http.Client, endpoint string, headers map[string]string) (*OTLPMetricEmitter, error) {
+func NewOTLPEmitter(client *http.Client, endpoint string, headers map[string]string) (*OTLPEmitter, error) {
 	if client == nil {
 		client = http.DefaultClient
 	}
-	return &OTLPMetricEmitter{
+	return &OTLPEmitter{
 		client:   client,
 		endpoint: endpoint,
 		headers:  headers,
 	}, nil
 }
 
-func (e *OTLPMetricEmitter) Emit(ctx context.Context, rs *state.RunState, md pmetric.Metrics) error {
+func (e *OTLPEmitter) EmitMetrics(ctx context.Context, rs *state.RunState, md pmetric.Metrics) error {
 	if md.DataPointCount() == 0 {
 		return nil
 	}
@@ -57,7 +60,26 @@ func (e *OTLPMetricEmitter) Emit(ctx context.Context, rs *state.RunState, md pme
 	}
 
 	url := strings.TrimRight(e.endpoint, "/") + "/v1/metrics"
+	return e.sendRequest(ctx, url, body)
+}
 
+func (e *OTLPEmitter) EmitTraces(ctx context.Context, rs *state.RunState, td ptrace.Traces) error {
+	if td.SpanCount() == 0 {
+		return nil
+	}
+
+	req := ptraceotlp.NewExportRequestFromTraces(td)
+
+	body, err := req.MarshalProto()
+	if err != nil {
+		return fmt.Errorf("failed to marshal traces to protobuf: %w", err)
+	}
+
+	url := strings.TrimRight(e.endpoint, "/") + "/v1/traces"
+	return e.sendRequest(ctx, url, body)
+}
+
+func (e *OTLPEmitter) sendRequest(ctx context.Context, url string, body []byte) error {
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request: %w", err)

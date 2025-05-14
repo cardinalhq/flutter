@@ -28,27 +28,30 @@ import (
 	"github.com/cardinalhq/oteltools/signalbuilder"
 
 	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/emitter"
 	"github.com/cardinalhq/flutter/pkg/generator"
-	"github.com/cardinalhq/flutter/pkg/metricemitter"
 	"github.com/cardinalhq/flutter/pkg/metricproducer"
 	"github.com/cardinalhq/flutter/pkg/scriptaction"
 	"github.com/cardinalhq/flutter/pkg/state"
+	"github.com/cardinalhq/flutter/pkg/traceproducer"
 )
 
 type Script struct {
-	actions         []scriptaction.ScriptAction
-	generators      map[string]generator.MetricGenerator
-	metricProducers map[string]metricproducer.MetricExporter
-	emitters        []metricemitter.Emitter
-	duration        time.Duration
-	from            time.Duration
+	actions          []scriptaction.ScriptAction
+	metricGenerators map[string]generator.MetricGenerator
+	metricProducers  map[string]metricproducer.MetricProducer
+	traceProducers   map[string]traceproducer.TraceProducer
+	emitters         []emitter.Emitter
+	duration         time.Duration
+	from             time.Duration
 }
 
 func NewScript() *Script {
 	return &Script{
-		actions:         []scriptaction.ScriptAction{},
-		generators:      map[string]generator.MetricGenerator{},
-		metricProducers: map[string]metricproducer.MetricExporter{},
+		actions:          []scriptaction.ScriptAction{},
+		metricGenerators: map[string]generator.MetricGenerator{},
+		metricProducers:  map[string]metricproducer.MetricProducer{},
+		traceProducers:   map[string]traceproducer.TraceProducer{},
 	}
 }
 
@@ -56,8 +59,12 @@ func (s *Script) AddAction(action scriptaction.ScriptAction) {
 	s.actions = append(s.actions, action)
 }
 
-func (s *Script) AddEmitter(emitter metricemitter.Emitter) {
+func (s *Script) AddEmitter(emitter emitter.Emitter) {
 	s.emitters = append(s.emitters, emitter)
+}
+
+func (s *Script) AddTraceProducer(id string, producer traceproducer.TraceProducer) {
+	s.traceProducers[id] = producer
 }
 
 func (s *Script) Duration() time.Duration {
@@ -97,7 +104,7 @@ func (s *Script) Prepare(cfg *config.Config) error {
 		if v := strings.Compare(a.Type, b.Type); v != 0 {
 			return v
 		}
-		return strings.Compare(a.Name, b.Name)
+		return strings.Compare(a.ID, b.ID)
 	})
 
 	var err error
@@ -114,7 +121,7 @@ func (s *Script) Prepare(cfg *config.Config) error {
 			if err != nil {
 				return errors.New("Error creating metric generator: " + err.Error())
 			}
-			s.generators[action.Name] = g
+			s.metricGenerators[action.ID] = g
 		default:
 			// Ignore other types of actions for now
 		}
@@ -152,6 +159,7 @@ func run(ctx context.Context, cfg *config.Config, rscript *Script) error {
 		cfg.WallclockStart = time.Now()
 	}
 	seconds := int64(rs.Duration.Seconds())
+	slog.Info("Running simulation", "duration", rs.Duration, "seed", seed, "wallclockStart", cfg.WallclockStart)
 	for now := range seconds + 1 {
 		rs.Tick = time.Duration(now) * time.Second
 		rs.Wallclock = cfg.WallclockStart.Add(rs.Tick)
@@ -173,46 +181,65 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 			rs.CurrentAction++
 			switch action.Type {
 			case "metricGenerator":
-				g, ok := rscript.generators[action.Name]
+				g, ok := rscript.metricGenerators[action.ID]
 				if !ok {
-					return fmt.Errorf("metric generator not found: %s", action.Name)
+					return fmt.Errorf("metric generator not found: %s", action.ID)
 				}
 				err := g.Reconfigure(action.At, action.Spec)
 				if err != nil {
-					return fmt.Errorf("error reconfiguring metric generator: %s", action.Name)
+					return fmt.Errorf("error reconfiguring metric generator: %s", action.ID)
 				}
 			case "metric":
-				if producer, ok := rscript.metricProducers[action.Name]; ok {
-					if err := producer.Reconfigure(rscript.generators, action.Spec); err != nil {
-						return fmt.Errorf("error reconfiguring metric exporter: %s", action.Name)
+				if producer, ok := rscript.metricProducers[action.ID]; ok {
+					if err := producer.Reconfigure(rscript.metricGenerators, action.Spec); err != nil {
+						return fmt.Errorf("error reconfiguring metric exporter: %s", action.ID)
 					}
 				}
-				producer, err := metricproducer.CreateMetricExporter(rscript.generators, action.Name, action)
+				producer, err := metricproducer.CreateMetricExporter(rscript.metricGenerators, action.ID, action)
 				if err != nil {
 					return fmt.Errorf("error creating metric exporter: %v", err)
 				}
-				rscript.metricProducers[action.Name] = producer
+				rscript.metricProducers[action.ID] = producer
 			case "disableMetric":
-				if producer, ok := rscript.metricProducers[action.Name]; ok {
+				if producer, ok := rscript.metricProducers[action.ID]; ok {
 					producer.Disable()
 				} else {
-					names := make([]string, 0, len(rscript.metricProducers))
-					for name := range rscript.metricProducers {
-						names = append(names, name)
-					}
-					slog.Info("names", "names", names)
-					return fmt.Errorf("disableMetric producer not found: %s", action.Name)
+					return fmt.Errorf("disableMetric producer not found: %s", action.ID)
 				}
 			case "enableMetric":
-				if producer, ok := rscript.metricProducers[action.Name]; ok {
+				if producer, ok := rscript.metricProducers[action.ID]; ok {
 					producer.Enable()
 				} else {
-					return fmt.Errorf("enableMetric producer not found: %s", action.Name)
+					return fmt.Errorf("enableMetric producer not found: %s", action.ID)
 				}
+			case "traceRate":
+				if producer, ok := rscript.traceProducers[action.ID]; !ok {
+					return fmt.Errorf("trace producer not found: %s", action.ID)
+				} else {
+					rate, ok := action.Spec["rate"].(float64)
+					if !ok {
+						return fmt.Errorf("trace rate not found in action spec: %s", action.ID)
+					}
+					producer.SetRate(rate)
+				}
+			default:
+				return fmt.Errorf("unknown action type: %s", action.Type)
 			}
 		}
 	}
 
+	if err := emitMetrics(ctx, rscript, rs); err != nil {
+		return fmt.Errorf("error emitting metrics: %w", err)
+	}
+
+	if err := emitTraces(ctx, rscript, rs); err != nil {
+		return fmt.Errorf("error emitting traces: %w", err)
+	}
+
+	return nil
+}
+
+func emitMetrics(ctx context.Context, rscript *Script, rs *state.RunState) error {
 	metricNames := make([]string, 0, len(rscript.metricProducers))
 	for name := range rscript.metricProducers {
 		metricNames = append(metricNames, name)
@@ -223,7 +250,7 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 		if !ok {
 			return fmt.Errorf("metric producer not found: %s", name)
 		}
-		err := producer.Emit(rscript.generators, rs, mb)
+		err := producer.Emit(rscript.metricGenerators, rs, mb)
 		if err != nil {
 			return fmt.Errorf("error emitting metric: %s", name)
 		}
@@ -232,8 +259,37 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 
 	if rs.Tick >= rscript.from {
 		for _, emitter := range rscript.emitters {
-			if err := emitter.Emit(ctx, rs, md); err != nil {
+			if err := emitter.EmitMetrics(ctx, rs, md); err != nil {
 				return fmt.Errorf("error emitting metric: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func emitTraces(ctx context.Context, rscript *Script, rs *state.RunState) error {
+	traceNames := make([]string, 0, len(rscript.traceProducers))
+	for name := range rscript.traceProducers {
+		traceNames = append(traceNames, name)
+	}
+	tb := signalbuilder.NewTracesBuilder()
+	for _, name := range traceNames {
+		producer, ok := rscript.traceProducers[name]
+		if !ok {
+			return fmt.Errorf("trace producer not found: %s", name)
+		}
+		err := producer.Emit(rs, tb)
+		if err != nil {
+			return fmt.Errorf("error emitting trace: %s", name)
+		}
+	}
+	td := tb.Build()
+
+	if rs.Tick >= rscript.from {
+		for _, emitter := range rscript.emitters {
+			if err := emitter.EmitTraces(ctx, rs, td); err != nil {
+				return fmt.Errorf("error emitting trace: %w", err)
 			}
 		}
 	}

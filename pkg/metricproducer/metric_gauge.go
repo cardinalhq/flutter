@@ -32,7 +32,7 @@ type MetricGauge struct {
 	MetricProducerSpec `mapstructure:",squash" yaml:",inline" json:",inline"`
 }
 
-var _ MetricExporter = (*MetricGauge)(nil)
+var _ MetricProducer = (*MetricGauge)(nil)
 
 func NewMetricGauge(generators map[string]generator.MetricGenerator, name string, mes scriptaction.ScriptAction) (*MetricGauge, error) {
 	gaugeSpec := MetricGauge{

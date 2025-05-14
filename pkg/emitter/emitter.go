@@ -12,16 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package metricemitter
+package emitter
 
 import (
 	"context"
 
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
 type Emitter interface {
-	Emit(ctx context.Context, state *state.RunState, m pmetric.Metrics) error
+	EmitMetrics(ctx context.Context, state *state.RunState, m pmetric.Metrics) error
+	EmitTraces(ctx context.Context, state *state.RunState, t ptrace.Traces) error
 }

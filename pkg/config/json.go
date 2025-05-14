@@ -12,29 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package metricemitter
+package config
 
 import (
-	"context"
-	"fmt"
+	"encoding/json"
 	"io"
-
-	"github.com/cardinalhq/flutter/pkg/state"
-	"go.opentelemetry.io/collector/pdata/pmetric"
 )
 
-type TickerEmitter struct {
-	out io.Writer
-}
-
-func NewTickerEmitter(out io.Writer) *TickerEmitter {
-	return &TickerEmitter{
-		out: out,
-	}
-}
-
-func (e *TickerEmitter) Emit(_ context.Context, rs *state.RunState, _ pmetric.Metrics) error {
-	percent := rs.Tick.Seconds() / rs.Duration.Seconds() * 100
-	fmt.Fprintf(e.out, "Tick %d %.2f%% %s\r", int(rs.Tick.Seconds()), percent, rs.Wallclock.Format("2006-01-02 15:04:05"))
-	return nil
+func JSONDecode(j io.Reader, target any) error {
+	decoder := json.NewDecoder(j)
+	decoder.DisallowUnknownFields()
+	return decoder.Decode(target)
 }

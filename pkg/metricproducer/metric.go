@@ -25,7 +25,7 @@ import (
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
-type MetricExporter interface {
+type MetricProducer interface {
 	MetricProducerInterface
 	Emit(generators map[string]generator.MetricGenerator, state *state.RunState, mb *signalbuilder.MetricsBuilder) error
 	Reconfigure(generators map[string]generator.MetricGenerator, spec map[string]any) error
@@ -39,7 +39,7 @@ type Attributes struct {
 
 type MetricProducerSpec struct {
 	To         time.Duration `mapstructure:"to,omitempty" yaml:"to,omitempty" json:"to,omitempty"`
-	Attributes Attributes    `mapstructure:"attributes,omitempty" yaml:"attributes,omitempty" json:"attributes"`
+	Attributes Attributes    `mapstructure:"attributes" yaml:"attributes" json:"attributes"`
 	Generators []string      `mapstructure:"generators" yaml:"generators" json:"generators"`
 	Frequency  time.Duration `mapstructure:"frequency,omitempty" yaml:"frequency,omitempty" json:"frequency,omitempty"`
 	Type       string        `mapstructure:"type" yaml:"type" json:"type"`
@@ -90,7 +90,7 @@ const (
 	DefaultFrequency = 10 * time.Second
 )
 
-func CreateMetricExporter(generators map[string]generator.MetricGenerator, name string, mes scriptaction.ScriptAction) (MetricExporter, error) {
+func CreateMetricExporter(generators map[string]generator.MetricGenerator, name string, mes scriptaction.ScriptAction) (MetricProducer, error) {
 	exporterTypeAny, ok := mes.Spec["type"]
 	if !ok {
 		return nil, errors.New("missing type in metric exporter spec")

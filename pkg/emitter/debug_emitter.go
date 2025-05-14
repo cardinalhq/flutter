@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package metricemitter
+package emitter
 
 import (
 	"context"
@@ -21,16 +21,18 @@ import (
 	"io"
 	"time"
 
-	"github.com/cardinalhq/flutter/pkg/state"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
+
+	"github.com/cardinalhq/flutter/pkg/state"
 )
 
-type DebugMetricEmitter struct {
+type DebugEmitter struct {
 	out io.Writer
 }
 
-func NewDebugMetricEmitter(out io.Writer) *DebugMetricEmitter {
-	return &DebugMetricEmitter{
+func NewDebugEmitter(out io.Writer) *DebugEmitter {
+	return &DebugEmitter{
 		out: out,
 	}
 }
@@ -38,10 +40,11 @@ func NewDebugMetricEmitter(out io.Writer) *DebugMetricEmitter {
 type DebugMessage struct {
 	Now      string    `json:"now"`
 	Walltime time.Time `json:"walltime"`
-	Metrics  any       `json:"metrics"`
+	Metrics  any       `json:"metrics,omitempty"`
+	Traces   any       `json:"traces,omitempty"`
 }
 
-func (e *DebugMetricEmitter) Emit(_ context.Context, rs *state.RunState, md pmetric.Metrics) error {
+func (e *DebugEmitter) EmitMetrics(_ context.Context, rs *state.RunState, md pmetric.Metrics) error {
 	if md.DataPointCount() == 0 {
 		return nil
 	}
@@ -62,6 +65,39 @@ func (e *DebugMetricEmitter) Emit(_ context.Context, rs *state.RunState, md pmet
 		Now:      rs.Tick.String(),
 		Walltime: rs.Wallclock,
 		Metrics:  anyBody,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to write metrics: %w", err)
+	}
+	_, _ = e.out.Write(b)
+	_, _ = e.out.Write([]byte("\n"))
+
+	return nil
+}
+
+func (e *DebugEmitter) EmitTraces(_ context.Context, rs *state.RunState, td ptrace.Traces) error {
+	if td.SpanCount() == 0 {
+		return nil
+	}
+
+	marshaller := ptrace.JSONMarshaler{}
+
+	msgBody, err := marshaller.MarshalTraces(td)
+	if err != nil {
+		return fmt.Errorf("failed to marshal otel metric payload: %w", err)
+	}
+
+	var anyBody any
+	if err := json.Unmarshal(msgBody, &anyBody); err != nil {
+		return fmt.Errorf("failed to unmarshal otel metric payload: %w", err)
+	}
+
+	msg := DebugMessage{
+		Now:      rs.Tick.String(),
+		Walltime: rs.Wallclock,
+		Traces:   anyBody,
 	}
 
 	b, err := json.Marshal(msg)

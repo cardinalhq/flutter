@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package metricemitter
+package emitter
 
 import (
 	"context"
@@ -23,29 +23,31 @@ import (
 	"time"
 
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 
 	"github.com/cardinalhq/flutter/pkg/compression"
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
-type JSONMetricEmitter struct {
+type JSONEmitter struct {
 	out io.Writer
 }
 
-func NewJSONMetricEmitter(out io.Writer) *JSONMetricEmitter {
-	return &JSONMetricEmitter{
+func NewJSONEmitter(out io.Writer) *JSONEmitter {
+	return &JSONEmitter{
 		out: out,
 	}
 }
 
 type jsonWrapper struct {
 	Timestamp       time.Time       `json:"timestamp"`
-	MetricsProtobuf string          `json:"metricsProtobuf"`
+	MetricsProtobuf string          `json:"metricsProtobuf,omitempty"`
+	TracesProtobuf  string          `json:"tracesProtobuf,omitempty"`
 	At              config.Duration `json:"at"`
 }
 
-func (e *JSONMetricEmitter) Emit(ctx context.Context, rs *state.RunState, md pmetric.Metrics) error {
+func (e *JSONEmitter) EmitMetrics(ctx context.Context, rs *state.RunState, md pmetric.Metrics) error {
 	if md.DataPointCount() == 0 {
 		return nil
 	}
@@ -67,6 +69,38 @@ func (e *JSONMetricEmitter) Emit(ctx context.Context, rs *state.RunState, md pme
 		return fmt.Errorf("failed to gzip metrics: %w", err)
 	}
 	j.MetricsProtobuf = base64.StdEncoding.EncodeToString(msgBody)
+
+	jsonData, err := json.Marshal(j)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	fmt.Fprintln(e.out, string(jsonData))
+	return nil
+}
+
+func (e *JSONEmitter) EmitTraces(ctx context.Context, rs *state.RunState, td ptrace.Traces) error {
+	if td.SpanCount() == 0 {
+		return nil
+	}
+
+	marshaller := ptrace.ProtoMarshaler{}
+
+	j := jsonWrapper{
+		Timestamp: rs.Wallclock,
+		At:        config.Duration{Duration: rs.Tick},
+	}
+
+	msgBody, err := marshaller.MarshalTraces(td)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metrics: %w", err)
+	}
+
+	msgBody, err = compression.GZipBytes(msgBody)
+	if err != nil {
+		return fmt.Errorf("failed to gzip metrics: %w", err)
+	}
+	j.TracesProtobuf = base64.StdEncoding.EncodeToString(msgBody)
 
 	jsonData, err := json.Marshal(j)
 	if err != nil {
