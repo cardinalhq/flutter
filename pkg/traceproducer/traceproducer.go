@@ -97,7 +97,7 @@ func (t *exemplar) Emit(state *state.RunState, tb *signalbuilder.TracesBuilder) 
 
 	parentSpanID := pcommon.NewSpanIDEmpty()
 
-	for range int(t.Rate / 60) {
+	for range int(t.Rate) {
 		traceID := randomTraceID(state.RND)
 		offset := state.Wallclock.Add(-time.Second)
 		offset = offset.Add(time.Duration(state.RND.Int64N(int64(time.Second))))
