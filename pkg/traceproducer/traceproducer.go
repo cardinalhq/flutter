@@ -26,6 +26,12 @@ import (
 	"github.com/cardinalhq/flutter/pkg/state"
 )
 
+type Attributes struct {
+	Resource map[string]any `json:"resource"`
+	Scope    map[string]any `json:"scope"`
+	Item     map[string]any `json:"item"`
+}
+
 type Span struct {
 	Ref                string          `json:"ref"`
 	Name               string          `json:"name"`
@@ -51,6 +57,8 @@ type TraceProducerSpec struct {
 	Rate     float64       `mapstructure:"rate,omitempty" yaml:"rate,omitempty" json:"rate,omitempty"`
 }
 
+var idRNG = state.MakeRNG(0)
+
 func NewTraceProducer(spec TraceProducerSpec) (TraceProducer, error) {
 	return &exemplar{spec}, nil
 }
@@ -61,7 +69,7 @@ type exemplar struct {
 
 func randomTraceID(r *rand.Rand) pcommon.TraceID {
 	traceidBytes := make([]byte, 16)
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		traceidBytes[i] = byte(r.IntN(256))
 	}
 
@@ -70,7 +78,7 @@ func randomTraceID(r *rand.Rand) pcommon.TraceID {
 
 func randomSpanID(r *rand.Rand) pcommon.SpanID {
 	spanidBytes := make([]byte, 8)
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		spanidBytes[i] = byte(r.IntN(256))
 	}
 
@@ -89,14 +97,20 @@ func (t *exemplar) Emit(state *state.RunState, tb *signalbuilder.TracesBuilder) 
 	traceID := randomTraceID(state.RND)
 	parentSpanID := pcommon.NewSpanIDEmpty()
 
-	if err := emitSpan(state, tb, t.Exemplar, traceID, parentSpanID); err != nil {
-		return err
+	for _ = range int(t.Rate) {
+		offset := state.Wallclock.Add(-time.Second)
+		// Randomly select a time within the last second
+		// to emit the trace.
+		offset = offset.Add(time.Duration(state.RND.Int64N(int64(time.Second))))
+		if err := emitSpan(offset, tb, t.Exemplar, traceID, parentSpanID); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func emitSpan(state *state.RunState, tb *signalbuilder.TracesBuilder, s Span, traceID pcommon.TraceID, parentSpanID pcommon.SpanID) error {
+func emitSpan(now time.Time, tb *signalbuilder.TracesBuilder, s Span, traceID pcommon.TraceID, parentSpanID pcommon.SpanID) error {
 	rattr := pcommon.NewMap()
 	if err := rattr.FromRaw(s.ResourceAttributes); err != nil {
 		return err
@@ -110,14 +124,14 @@ func emitSpan(state *state.RunState, tb *signalbuilder.TracesBuilder, s Span, tr
 		return err
 	}
 
-	spanID := randomSpanID(state.RND)
+	spanID := randomSpanID(idRNG)
 
 	ospan.SetTraceID(traceID)
 	ospan.SetSpanID(spanID)
 	ospan.SetParentSpanID(parentSpanID)
 	ospan.SetName(s.Name)
-	ospan.SetStartTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-	ospan.SetEndTimestamp(pcommon.NewTimestampFromTime(time.Now().Add(s.Duration.Get())))
+	ospan.SetStartTimestamp(pcommon.NewTimestampFromTime(now))
+	ospan.SetEndTimestamp(pcommon.NewTimestampFromTime(now.Add(s.Duration.Get())))
 
 	if s.Error {
 		ospan.Status().SetCode(ptrace.StatusCodeError)
@@ -143,7 +157,7 @@ func emitSpan(state *state.RunState, tb *signalbuilder.TracesBuilder, s Span, tr
 	}
 
 	for _, child := range s.Children {
-		if err := emitSpan(state, tb, child, traceID, spanID); err != nil {
+		if err := emitSpan(now.Add(s.Duration.Get()), tb, child, traceID, spanID); err != nil {
 			return err
 		}
 	}
