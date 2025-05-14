@@ -16,6 +16,7 @@ package traceproducer
 
 import (
 	"math/rand/v2"
+	"strings"
 	"time"
 
 	"github.com/cardinalhq/oteltools/signalbuilder"
@@ -94,13 +95,11 @@ func (t *exemplar) Emit(state *state.RunState, tb *signalbuilder.TracesBuilder) 
 		return nil
 	}
 
-	traceID := randomTraceID(state.RND)
 	parentSpanID := pcommon.NewSpanIDEmpty()
 
-	for _ = range int(t.Rate) {
+	for range int(t.Rate / 60) {
+		traceID := randomTraceID(state.RND)
 		offset := state.Wallclock.Add(-time.Second)
-		// Randomly select a time within the last second
-		// to emit the trace.
 		offset = offset.Add(time.Duration(state.RND.Int64N(int64(time.Second))))
 		if err := emitSpan(offset, tb, t.Exemplar, traceID, parentSpanID); err != nil {
 			return err
@@ -130,8 +129,9 @@ func emitSpan(now time.Time, tb *signalbuilder.TracesBuilder, s Span, traceID pc
 	ospan.SetSpanID(spanID)
 	ospan.SetParentSpanID(parentSpanID)
 	ospan.SetName(s.Name)
-	ospan.SetStartTimestamp(pcommon.NewTimestampFromTime(now))
-	ospan.SetEndTimestamp(pcommon.NewTimestampFromTime(now.Add(s.Duration.Get())))
+	stime := now.Add(s.StartTs.Get())
+	ospan.SetStartTimestamp(pcommon.NewTimestampFromTime(stime))
+	ospan.SetEndTimestamp(pcommon.NewTimestampFromTime(stime.Add(s.Duration.Get())))
 
 	if s.Error {
 		ospan.Status().SetCode(ptrace.StatusCodeError)
@@ -141,7 +141,7 @@ func emitSpan(now time.Time, tb *signalbuilder.TracesBuilder, s Span, traceID pc
 		ospan.Status().SetMessage("")
 	}
 
-	switch s.Kind {
+	switch strings.ToLower(s.Kind) {
 	case "internal":
 		ospan.SetKind(ptrace.SpanKindInternal)
 	case "server":
@@ -157,7 +157,7 @@ func emitSpan(now time.Time, tb *signalbuilder.TracesBuilder, s Span, traceID pc
 	}
 
 	for _, child := range s.Children {
-		if err := emitSpan(now.Add(s.Duration.Get()), tb, child, traceID, spanID); err != nil {
+		if err := emitSpan(now, tb, child, traceID, spanID); err != nil {
 			return err
 		}
 	}
