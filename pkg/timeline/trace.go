@@ -22,9 +22,13 @@ import (
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/script"
 	"github.com/cardinalhq/flutter/pkg/scriptaction"
+	"github.com/cardinalhq/flutter/pkg/traceproducer"
 )
 
 func mergeTrace(rs *script.Script, trace Trace) error {
+	if len(trace.Variants) == 0 {
+		return fmt.Errorf("no variants for trace %s", trace.Name)
+	}
 	for _, variant := range trace.Variants {
 		if len(variant.Timeline) == 0 {
 			return fmt.Errorf("no segments for trace %s", trace.Name)
@@ -39,9 +43,9 @@ func mergeTrace(rs *script.Script, trace Trace) error {
 			return err
 		}
 
-		// if err := addTraceTimelineToScript(rs, id, variant.Timeline); err != nil {
-		// 	return err
-		// }
+		if err := addTraceTimelineToScript(rs, id, variant.Timeline); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -50,15 +54,7 @@ func makeTraceID(trace Trace, variant TraceVariant) string {
 	return fmt.Sprintf("%s-%s", trace.Name, variant.Name)
 }
 
-type TraceProducerSpec struct {
-	At       config.Duration `mapstructure:"at,omitempty" yaml:"at,omitempty" json:"at,omitempty"`
-	To       config.Duration `mapstructure:"to,omitempty" yaml:"to,omitempty" json:"to,omitempty"`
-	Rate     float64         `mapstructure:"rate,omitempty" yaml:"rate,omitempty" json:"rate,omitempty"`
-	Exemplar Span            `mapstructure:"exemplar,omitempty" yaml:"exemplar,omitempty" json:"exemplar,omitempty"`
-	Disabled bool            `mapstructure:"disabled,omitempty" yaml:"disabled,omitempty" json:"disabled,omitempty"`
-}
-
-func duplicateSpans(span Span, variant TraceVariant) Span {
+func duplicateSpans(span traceproducer.Span, variant TraceVariant) traceproducer.Span {
 	spanCopy := span
 	spanCopy.ResourceAttributes = make(map[string]any)
 	maps.Copy(spanCopy.ResourceAttributes, span.ResourceAttributes)
@@ -69,14 +65,14 @@ func duplicateSpans(span Span, variant TraceVariant) Span {
 		applySpanOverride(&spanCopy, override)
 	}
 
-	spanCopy.Children = make([]Span, len(span.Children))
+	spanCopy.Children = make([]traceproducer.Span, len(span.Children))
 	for i, child := range span.Children {
 		spanCopy.Children[i] = duplicateSpans(child, variant)
 	}
 	return spanCopy
 }
 
-func applySpanOverride(span *Span, override SpanOverride) {
+func applySpanOverride(span *traceproducer.Span, override SpanOverride) {
 	if override.Duration != nil {
 		span.Duration = *override.Duration
 	}
@@ -88,19 +84,53 @@ func applySpanOverride(span *Span, override SpanOverride) {
 	}
 }
 
-func addTraceToConfig(rs *script.Script, id string, span Span, firstAt, endAt time.Duration, rate float64) error {
-	action := scriptaction.ScriptAction{
-		At:   firstAt,
-		To:   endAt,
-		Name: id,
-		Type: "trace",
-		Spec: specToMap(TraceProducerSpec{
-			At:       config.DurationFromDuration(firstAt),
-			To:       config.DurationFromDuration(endAt),
-			Exemplar: span,
-			Rate:     rate,
-		}),
+func addTraceToConfig(rs *script.Script, id string, span traceproducer.Span, firstAt, endAt time.Duration) error {
+	spec := traceproducer.TraceProducerSpec{
+		At:       firstAt,
+		To:       endAt,
+		Exemplar: span,
 	}
-	rs.AddAction(action)
+
+	tp, err := traceproducer.NewTraceProducer(spec)
+	if err != nil {
+		return err
+	}
+	rs.AddTraceProducer(id, tp)
+
 	return nil
+}
+
+func addTraceTimelineToScript(rs *script.Script, id string, timeline []Segment) error {
+	if len(timeline) == 0 {
+		return nil
+	}
+
+	startAt := timeline[0].StartTs.Get()
+
+	for _, dp := range timeline {
+		if dp.Type != "segment" {
+			continue
+		}
+
+		action := scriptaction.ScriptAction{
+			ID:   id,
+			Type: "traceRate",
+			At:   startAt,
+			To:   dp.EndTs.Get(),
+			Spec: map[string]any{
+				"rate": dp.Target,
+			},
+		}
+		startAt = dp.EndTs.Get()
+		rs.AddAction(action)
+	}
+
+	return nil
+}
+
+type TraceGeneratorSpec struct {
+	At         config.Duration `mapstructure:"at,omitempty" yaml:"at,omitempty" json:"at,omitempty"`
+	To         config.Duration `mapstructure:"to,omitempty" yaml:"to,omitempty" json:"to,omitempty"`
+	ExemplarID string          `mapstructure:"exemplar_id,omitempty" yaml:"exemplar_id,omitempty" json:"exemplar_id,omitempty"`
+	Rate       float64         `mapstructure:"rate,omitempty" yaml:"rate,omitempty" json:"rate,omitempty"`
 }

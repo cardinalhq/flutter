@@ -39,7 +39,7 @@ type Attributes struct {
 
 type MetricProducerSpec struct {
 	To         time.Duration `mapstructure:"to,omitempty" yaml:"to,omitempty" json:"to,omitempty"`
-	Attributes Attributes    `mapstructure:"attributes,omitempty" yaml:"attributes,omitempty" json:"attributes,omitempty"`
+	Attributes Attributes    `mapstructure:"attributes" yaml:"attributes" json:"attributes"`
 	Generators []string      `mapstructure:"generators" yaml:"generators" json:"generators"`
 	Frequency  time.Duration `mapstructure:"frequency,omitempty" yaml:"frequency,omitempty" json:"frequency,omitempty"`
 	Type       string        `mapstructure:"type" yaml:"type" json:"type"`

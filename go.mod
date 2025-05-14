@@ -3,7 +3,7 @@ module github.com/cardinalhq/flutter
 go 1.24.2
 
 require (
-	github.com/cardinalhq/oteltools v0.24.21
+	github.com/cardinalhq/oteltools v0.26.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/spf13/cobra v1.9.1

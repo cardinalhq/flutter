@@ -23,6 +23,7 @@ import (
 
 	"github.com/cardinalhq/flutter/pkg/config"
 	"github.com/cardinalhq/flutter/pkg/script"
+	"github.com/cardinalhq/flutter/pkg/traceproducer"
 )
 
 type Timeline struct {
@@ -52,22 +53,10 @@ type Segment struct {
 }
 
 type Trace struct {
-	Ref      string         `json:"ref"`
-	Name     string         `json:"name"`
-	Exemplar Span           `json:"exemplar"`
-	Variants []TraceVariant `json:"variants"`
-}
-
-type Span struct {
-	Ref                string          `json:"ref"`
-	Name               string          `json:"name"`
-	Kind               string          `json:"kind"`
-	StartTs            config.Duration `json:"start_ts"`
-	Duration           config.Duration `json:"duration"`
-	Error              bool            `json:"error"`
-	ResourceAttributes map[string]any  `json:"resourceAttributes"`
-	Attributes         map[string]any  `json:"attributes"`
-	Children           []Span          `json:"children"`
+	Ref      string             `json:"ref"`
+	Name     string             `json:"name"`
+	Exemplar traceproducer.Span `json:"exemplar"`
+	Variants []TraceVariant     `json:"variants"`
 }
 
 type TraceVariant struct {

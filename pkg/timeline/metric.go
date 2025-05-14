@@ -68,7 +68,7 @@ func addMetricToConfig(rs *script.Script, id string, metric Metric, variant Vari
 	action := scriptaction.ScriptAction{
 		At:   startAt,
 		To:   endAt,
-		Name: id,
+		ID:   id,
 		Type: "metric",
 		Spec: specToMap(metricproducer.MetricGauge{
 			MetricProducerSpec: metricproducer.MetricProducerSpec{
@@ -89,7 +89,7 @@ func addMetricToConfig(rs *script.Script, id string, metric Metric, variant Vari
 
 func addMetricNoiseGenerator(rs *script.Script, id string) error {
 	action := scriptaction.ScriptAction{
-		Name: id + "_noise",
+		ID:   id + "_noise",
 		Type: "metricGenerator",
 		Spec: specToMap(generator.MetricNormalNoiseSpec{
 			MetricGeneratorSpec: generator.MetricGeneratorSpec{
@@ -128,7 +128,7 @@ func addMetricTimelineToScript(rs *script.Script, id string, timeline []Segment)
 		if dp.Type == "disable" {
 			action := scriptaction.ScriptAction{
 				At:   dp.StartTs.Get(),
-				Name: id,
+				ID:   id,
 				Type: "disableMetric",
 			}
 			disabled = true
@@ -145,14 +145,14 @@ func addMetricTimelineToScript(rs *script.Script, id string, timeline []Segment)
 		if disabled {
 			action := scriptaction.ScriptAction{
 				At:   startAt,
-				Name: id,
+				ID:   id,
 				Type: "enableMetric",
 			}
 			rs.AddAction(action)
 			disabled = false
 		}
 		action := scriptaction.ScriptAction{
-			Name: id + "_ramp_" + strconv.Itoa(rampCounter),
+			ID:   id + "_ramp_" + strconv.Itoa(rampCounter),
 			Type: "metricGenerator",
 			At:   startAt,
 			Spec: specToMap(generator.MetricRampSpec{

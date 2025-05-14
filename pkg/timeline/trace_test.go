@@ -1,3 +1,17 @@
+// Copyright 2025 CardinalHQ, Inc
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package timeline
 
 import (
@@ -6,10 +20,11 @@ import (
 	"time"
 
 	"github.com/cardinalhq/flutter/pkg/config"
+	"github.com/cardinalhq/flutter/pkg/traceproducer"
 )
 
 func TestDuplicateSpans_Simple(t *testing.T) {
-	span := Span{
+	span := traceproducer.Span{
 		Name: "root",
 		ResourceAttributes: map[string]any{
 			"service.name": "svc",
@@ -43,11 +58,11 @@ func TestDuplicateSpans_Simple(t *testing.T) {
 }
 
 func TestDuplicateSpans_WithChildren(t *testing.T) {
-	span := Span{
+	span := traceproducer.Span{
 		Name:               "root",
 		ResourceAttributes: map[string]any{"k": "v"},
 		Attributes:         map[string]any{"a": 1},
-		Children: []Span{
+		Children: []traceproducer.Span{
 			{
 				Name:               "child1",
 				ResourceAttributes: map[string]any{"ck": "cv"},
@@ -89,7 +104,7 @@ func TestApplySpanOverride(t *testing.T) {
 	t.Run("Duration", func(t *testing.T) {
 		origDuration := config.DurationFromDuration(100 * time.Millisecond)
 		overrideDuration := config.DurationFromDuration(200 * time.Millisecond)
-		span := &Span{Duration: origDuration}
+		span := &traceproducer.Span{Duration: origDuration}
 		override := SpanOverride{Duration: &overrideDuration}
 
 		applySpanOverride(span, override)
@@ -102,7 +117,7 @@ func TestApplySpanOverride(t *testing.T) {
 	t.Run("Error", func(t *testing.T) {
 		origError := false
 		overrideError := true
-		span := &Span{Error: origError}
+		span := &traceproducer.Span{Error: origError}
 		override := SpanOverride{Error: &overrideError}
 
 		applySpanOverride(span, override)
@@ -113,7 +128,7 @@ func TestApplySpanOverride(t *testing.T) {
 	})
 
 	t.Run("Attributes", func(t *testing.T) {
-		span := &Span{Attributes: map[string]any{"foo": "bar", "keep": 1}}
+		span := &traceproducer.Span{Attributes: map[string]any{"foo": "bar", "keep": 1}}
 		overrideAttrs := map[string]any{"foo": "baz", "new": 2}
 		override := SpanOverride{Attributes: overrideAttrs}
 
@@ -126,7 +141,7 @@ func TestApplySpanOverride(t *testing.T) {
 	})
 
 	t.Run("NilFields", func(t *testing.T) {
-		span := &Span{
+		span := &traceproducer.Span{
 			Duration:   config.DurationFromDuration(5 * time.Second),
 			Error:      false,
 			Attributes: map[string]any{"x": 1},
