@@ -112,14 +112,19 @@ func addTraceTimelineToScript(rs *script.Script, id string, timeline []Segment) 
 			continue
 		}
 
+		spec := map[string]any{
+			"rate": dp.Target,
+		}
+		if dp.Start != nil {
+			spec["start"] = *dp.Start
+		}
+
 		action := scriptaction.ScriptAction{
 			ID:   id,
 			Type: "traceRate",
 			At:   startAt,
 			To:   dp.EndTs.Get(),
-			Spec: map[string]any{
-				"rate": dp.Target,
-			},
+			Spec: spec,
 		}
 		startAt = dp.EndTs.Get()
 		rs.AddAction(action)
@@ -129,8 +134,8 @@ func addTraceTimelineToScript(rs *script.Script, id string, timeline []Segment) 
 }
 
 type TraceGeneratorSpec struct {
-	At         config.Duration `mapstructure:"at,omitempty" yaml:"at,omitempty" json:"at,omitempty"`
-	To         config.Duration `mapstructure:"to,omitempty" yaml:"to,omitempty" json:"to,omitempty"`
+	At         config.Duration `mapstructure:"at" yaml:"at" json:"at"`
+	To         config.Duration `mapstructure:"to" yaml:"to" json:"to"`
 	ExemplarID string          `mapstructure:"exemplar_id,omitempty" yaml:"exemplar_id,omitempty" json:"exemplar_id,omitempty"`
 	Rate       float64         `mapstructure:"rate,omitempty" yaml:"rate,omitempty" json:"rate,omitempty"`
 }

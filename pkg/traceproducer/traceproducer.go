@@ -47,7 +47,8 @@ type Span struct {
 
 type TraceProducer interface {
 	Emit(state *state.RunState, tb *signalbuilder.TracesBuilder) error
-	SetRate(rate float64)
+	SetRate(at time.Duration, to time.Duration, now time.Duration, rate float64)
+	SetStart(start float64)
 }
 
 type TraceProducerSpec struct {
@@ -61,11 +62,16 @@ type TraceProducerSpec struct {
 var idRNG = state.MakeRNG(0)
 
 func NewTraceProducer(spec TraceProducerSpec) (TraceProducer, error) {
-	return &exemplar{spec}, nil
+	return &exemplar{
+		TraceProducerSpec: spec,
+		start:             spec.Rate,
+	}, nil
 }
 
 type exemplar struct {
 	TraceProducerSpec
+
+	start float64
 }
 
 func randomTraceID(r *rand.Rand) pcommon.TraceID {
@@ -86,22 +92,38 @@ func randomSpanID(r *rand.Rand) pcommon.SpanID {
 	return pcommon.SpanID(spanidBytes)
 }
 
-func (t *exemplar) Emit(state *state.RunState, tb *signalbuilder.TracesBuilder) error {
-	if t.Disabled || t.Rate == 0 {
+// intrerpolate linearly interpolates from start → target over the given duration,
+// beginning at offset startAt, and evaluated at offset at.
+func intrerpolate(start, target float64, startAt, now, duration time.Duration) float64 {
+	if duration <= 0 {
+		return target
+	}
+	elapsed := now - startAt
+	if elapsed <= 0 {
+		return start
+	}
+	if elapsed >= duration {
+		return target
+	}
+	frac := float64(elapsed) / float64(duration)
+	return start + (target-start)*frac
+}
+
+func (t *exemplar) Emit(rs *state.RunState, tb *signalbuilder.TracesBuilder) error {
+	if t.Disabled || rs.Tick < t.At || rs.Tick > t.To {
 		return nil
 	}
 
-	if state.Tick < t.At || state.Tick > t.To {
+	rate := intrerpolate(t.start, t.Rate, t.At, rs.Tick, t.To-t.At)
+	if rate <= 0 {
 		return nil
 	}
-
-	parentSpanID := pcommon.NewSpanIDEmpty()
-
-	for range int(t.Rate) {
-		traceID := randomTraceID(state.RND)
-		offset := state.Wallclock.Add(-time.Second)
-		offset = offset.Add(time.Duration(state.RND.Int64N(int64(time.Second))))
-		if err := emitSpan(offset, tb, t.Exemplar, traceID, parentSpanID); err != nil {
+	for range int(rate) {
+		offset := rs.Wallclock.Add(-time.Second)
+		offset = offset.Add(time.Duration(rs.RND.Int64N(int64(time.Second))))
+		jitter0 := time.Duration(scaledKindaNormal(rs.RND)*2) * time.Millisecond
+		jitter1 := time.Duration(scaledKindaNormal(rs.RND)*2) * time.Millisecond
+		if err := emitSpan(offset, jitter0, jitter1, tb, t.Exemplar, randomTraceID(rs.RND), pcommon.NewSpanIDEmpty()); err != nil {
 			return err
 		}
 	}
@@ -109,7 +131,17 @@ func (t *exemplar) Emit(state *state.RunState, tb *signalbuilder.TracesBuilder) 
 	return nil
 }
 
-func emitSpan(now time.Time, tb *signalbuilder.TracesBuilder, s Span, traceID pcommon.TraceID, parentSpanID pcommon.SpanID) error {
+func scaledKindaNormal(r *rand.Rand) float64 {
+	const maxSigma = 3.0
+	for {
+		x := min(r.NormFloat64(), maxSigma)
+		if x >= 0 {
+			return x / maxSigma
+		}
+	}
+}
+
+func emitSpan(now time.Time, jitter0, jitter1 time.Duration, tb *signalbuilder.TracesBuilder, s Span, traceID pcommon.TraceID, parentSpanID pcommon.SpanID) error {
 	rattr := pcommon.NewMap()
 	if err := rattr.FromRaw(s.ResourceAttributes); err != nil {
 		return err
@@ -129,9 +161,16 @@ func emitSpan(now time.Time, tb *signalbuilder.TracesBuilder, s Span, traceID pc
 	ospan.SetSpanID(spanID)
 	ospan.SetParentSpanID(parentSpanID)
 	ospan.SetName(s.Name)
+
 	stime := now.Add(s.StartTs.Get())
-	ospan.SetStartTimestamp(pcommon.NewTimestampFromTime(stime))
-	ospan.SetEndTimestamp(pcommon.NewTimestampFromTime(stime.Add(s.Duration.Get())))
+	scale := len(s.Children) + 1
+	j0ms := jitter0 * time.Duration(scale)
+	sts := stime.Add(-j0ms)
+	ospan.SetStartTimestamp(pcommon.NewTimestampFromTime(sts))
+
+	j1ms := jitter1 * time.Duration(scale)
+	ets := stime.Add(s.Duration.Get() + j1ms*time.Duration(scale))
+	ospan.SetEndTimestamp(pcommon.NewTimestampFromTime(ets))
 
 	if s.Error {
 		ospan.Status().SetCode(ptrace.StatusCodeError)
@@ -157,7 +196,7 @@ func emitSpan(now time.Time, tb *signalbuilder.TracesBuilder, s Span, traceID pc
 	}
 
 	for _, child := range s.Children {
-		if err := emitSpan(now, tb, child, traceID, spanID); err != nil {
+		if err := emitSpan(now, jitter0, jitter1, tb, child, traceID, spanID); err != nil {
 			return err
 		}
 	}
@@ -165,6 +204,14 @@ func emitSpan(now time.Time, tb *signalbuilder.TracesBuilder, s Span, traceID pc
 	return nil
 }
 
-func (t *exemplar) SetRate(rate float64) {
+func (t *exemplar) SetRate(at time.Duration, to time.Duration, now time.Duration, rate float64) {
+	current := intrerpolate(t.start, t.Rate, t.At, now, t.To-t.At)
+	t.start = current
+	t.At = at
+	t.To = to
 	t.Rate = rate
+}
+
+func (t *exemplar) SetStart(start float64) {
+	t.start = start
 }
