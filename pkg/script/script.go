@@ -213,14 +213,18 @@ func tick(ctx context.Context, rscript *Script, rs *state.RunState) error {
 					return fmt.Errorf("enableMetric producer not found: %s", action.ID)
 				}
 			case "traceRate":
-				if producer, ok := rscript.traceProducers[action.ID]; !ok {
+				slog.Info("trace rate", "at", action.At, "to", action.To, "rate", action.Spec["rate"])
+				producer, ok := rscript.traceProducers[action.ID]
+				if !ok {
 					return fmt.Errorf("trace producer not found: %s", action.ID)
-				} else {
-					rate, ok := action.Spec["rate"].(float64)
-					if !ok {
-						return fmt.Errorf("trace rate not found in action spec: %s", action.ID)
-					}
-					producer.SetRate(rate)
+				}
+				rate, ok := action.Spec["rate"].(float64)
+				if !ok {
+					return fmt.Errorf("trace rate not found in action spec: %s", action.ID)
+				}
+				producer.SetRate(action.At, action.To, rs.Tick, rate)
+				if start, ok := action.Spec["start"].(float64); ok {
+					producer.SetStart(start)
 				}
 			default:
 				return fmt.Errorf("unknown action type: %s", action.Type)
@@ -256,6 +260,9 @@ func emitMetrics(ctx context.Context, rscript *Script, rs *state.RunState) error
 		}
 	}
 	md := mb.Build()
+	// if md.DataPointCount() > 0 {
+	// 	slog.Info("Emitting metrics", "count", md.DataPointCount())
+	// }
 
 	if rs.Tick >= rscript.from {
 		for _, emitter := range rscript.emitters {
@@ -269,22 +276,27 @@ func emitMetrics(ctx context.Context, rscript *Script, rs *state.RunState) error
 }
 
 func emitTraces(ctx context.Context, rscript *Script, rs *state.RunState) error {
-	traceNames := make([]string, 0, len(rscript.traceProducers))
-	for name := range rscript.traceProducers {
-		traceNames = append(traceNames, name)
-	}
 	tb := signalbuilder.NewTracesBuilder()
-	for _, name := range traceNames {
-		producer, ok := rscript.traceProducers[name]
-		if !ok {
-			return fmt.Errorf("trace producer not found: %s", name)
-		}
+	for name, producer := range rscript.traceProducers {
 		err := producer.Emit(rs, tb)
 		if err != nil {
 			return fmt.Errorf("error emitting trace: %s", name)
 		}
 	}
 	td := tb.Build()
+	// if td.SpanCount() > 0 {
+	// 	rootCount := 0
+	// 	for _, rspan := range td.ResourceSpans().All() {
+	// 		for _, ilspan := range rspan.ScopeSpans().All() {
+	// 			for _, span := range ilspan.Spans().All() {
+	// 				if span.ParentSpanID().IsEmpty() {
+	// 					rootCount++
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// 	slog.Info("Emitting traces", "spanCount", td.SpanCount(), "rootSpanCount", rootCount)
+	// }
 
 	if rs.Tick >= rscript.from {
 		for _, emitter := range rscript.emitters {
