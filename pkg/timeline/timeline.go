@@ -58,6 +58,7 @@ type Trace struct {
 	Name     string             `json:"name"`
 	Exemplar traceproducer.Span `json:"exemplar"`
 	Variants []TraceVariant     `json:"variants"`
+	Description         string         `json:"description"`
 }
 
 type TraceVariant struct {
