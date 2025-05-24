@@ -37,6 +37,7 @@ type Metric struct {
 	Frequency          config.Duration `json:"frequency,omitempty"` // optional, defaults to DefaultFrequency (10s)
 	ResourceAttributes map[string]any  `json:"resourceAttributes"`
 	Variants           []Variant       `json:"variants"`
+	Description         string         `json:"description"`
 }
 
 type Variant struct {
