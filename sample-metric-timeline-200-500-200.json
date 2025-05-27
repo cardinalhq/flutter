@@ -1,0 +1,44 @@
+{
+  "metrics": [
+    {
+      "name": "average_checkout_duration",
+      "type": "sum",
+      "variants": [
+        {
+          "timeline": [
+            {
+              "type": "segment",
+              "start": 200,
+              "end_ts": "5m",
+              "target": 200,
+              "start_ts": "0m"
+            },
+            {
+              "type": "segment",
+              "start": 500,
+              "end_ts": "120m",
+              "target": 500,
+              "start_ts": "5m"
+            },
+            {
+              "type": "segment",
+              "start": 200,
+              "end_ts": "180m",
+              "target": 200,
+              "start_ts": "120m"
+            }
+          ],
+          "attributes": {
+            "device_type": "desktop",
+            "payment_method": "credit_card"
+          }
+        }
+      ],
+      "resourceAttributes": {
+        "service.name": "checkoutservice",
+        "k8s.cluster.name": "test-cluster",
+        "k8s.namespace.name": "chq-demo-apps"
+      }
+    }
+  ]
+}

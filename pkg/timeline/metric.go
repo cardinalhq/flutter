@@ -74,6 +74,7 @@ func addMetricToConfig(rs *script.Script, id string, metric Metric, variant Vari
 			MetricProducerSpec: metricproducer.MetricProducerSpec{
 				Name:      metric.Name,
 				Type:      metric.Type,
+				To:        endAt,
 				Frequency: frequency,
 				Attributes: metricproducer.Attributes{
 					Resource:  metric.ResourceAttributes,
@@ -118,6 +119,14 @@ func addMetricTimelineToScript(rs *script.Script, id string, timeline []Segment)
 
 	rampCounter := 0
 
+	// count the number of ramps so we can do something special with the last one
+	nRamps := 0
+	for _, dp := range timeline {
+		if dp.Type == "segment" {
+			nRamps++
+		}
+	}
+
 	for _, dp := range timeline {
 		if dp.StartTs.Get() != 0 {
 			startAt = dp.StartTs.Get()
@@ -159,9 +168,10 @@ func addMetricTimelineToScript(rs *script.Script, id string, timeline []Segment)
 				MetricGeneratorSpec: generator.MetricGeneratorSpec{
 					Type: "ramp",
 				},
-				Start:    startValue,
-				Target:   dp.Target,
-				Duration: duration,
+				Start:       startValue,
+				Target:      dp.Target,
+				Duration:    duration,
+				PostEndZero: rampCounter < nRamps-1,
 			}),
 		}
 		rampCounter++
