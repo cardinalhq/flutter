@@ -115,6 +115,15 @@ func (t *exemplar) Emit(rs *state.RunState, tb *signalbuilder.TracesBuilder) err
 	}
 
 	rate := intrerpolate(t.start, t.Rate, t.At, rs.Tick, t.To-t.At)
+	rateJitter := scaledKindaNormal(rs.RND) * (rate * 0.1)
+	if rate < 10 {
+		if rateJitter < 0 {
+			rateJitter = -1
+		} else if rateJitter > 0 {
+			rateJitter = 1
+		}
+	}
+	rate += rateJitter
 	if rate <= 0 {
 		return nil
 	}
