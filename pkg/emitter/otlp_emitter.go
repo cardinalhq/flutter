@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -79,6 +80,8 @@ func (e *OTLPEmitter) EmitTraces(ctx context.Context, rs *state.RunState, td ptr
 	return e.sendRequest(ctx, url, body)
 }
 
+var ignoreStatusCodes = []int{http.StatusNoContent, http.StatusOK, http.StatusAccepted, http.StatusBadGateway}
+
 func (e *OTLPEmitter) sendRequest(ctx context.Context, url string, body []byte) error {
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
@@ -95,7 +98,7 @@ func (e *OTLPEmitter) sendRequest(ctx context.Context, url string, body []byte) 
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if !slices.Contains(ignoreStatusCodes, resp.StatusCode) {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("collector returned %s: %s", resp.Status, string(respBody))
 	}
