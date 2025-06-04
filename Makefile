@@ -78,7 +78,7 @@ images: test-only goreleaser-dev
 
 .PHONY: goreleaser-dev
 goreleaser-dev:
-	go tool goreleaser release --clean
+	goreleaser release --clean
 
 #
 # Test targets
