@@ -34,7 +34,7 @@ IMAGE_TARGETS = flutter
 # Below here lies magic...x
 #
 
-all_deps := $(shell find cmd commands internal -name '*.go' | grep -v _test) Makefile
+all_deps := $(shell find cmd commands pkg -name '*.go' | grep -v _test) Makefile
 
 #
 # Default target.

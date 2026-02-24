@@ -25,3 +25,4 @@ gha-creds-*.json
 
 dist
 vendor
+scenario-lakerunner-config.yaml
