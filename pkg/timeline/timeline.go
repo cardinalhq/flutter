@@ -40,9 +40,16 @@ type Metric struct {
 	Description         string         `json:"description"`
 }
 
+type NoiseConfig struct {
+	Variation float64 `json:"variation"`
+	Direction string  `json:"direction,omitempty"`
+	StdDev    float64 `json:"stdDev,omitempty"`
+}
+
 type Variant struct {
 	Attributes map[string]any `json:"attributes"`
 	Timeline   []Segment      `json:"timeline"`
+	Noise      *NoiseConfig   `json:"noise,omitempty"`
 }
 
 type Segment struct {

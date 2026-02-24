@@ -53,7 +53,7 @@ func mergeMetric(rs *script.Script, metric Metric) error {
 			return err
 		}
 
-		if err := addMetricNoiseGenerator(rs, id); err != nil {
+		if err := addMetricNoiseGenerator(rs, id, variant.Noise); err != nil {
 			return err
 		}
 
@@ -88,7 +88,19 @@ func addMetricToConfig(rs *script.Script, id string, metric Metric, variant Vari
 	return nil
 }
 
-func addMetricNoiseGenerator(rs *script.Script, id string) error {
+func addMetricNoiseGenerator(rs *script.Script, id string, noise *NoiseConfig) error {
+	variation := 5.0
+	direction := "both"
+	stdDev := -1.0
+	if noise != nil {
+		variation = noise.Variation
+		if noise.Direction != "" {
+			direction = noise.Direction
+		}
+		if noise.StdDev != 0 {
+			stdDev = noise.StdDev
+		}
+	}
 	action := scriptaction.ScriptAction{
 		ID:   id + "_noise",
 		Type: "metricGenerator",
@@ -96,9 +108,9 @@ func addMetricNoiseGenerator(rs *script.Script, id string) error {
 			MetricGeneratorSpec: generator.MetricGeneratorSpec{
 				Type: "normalNoise",
 			},
-			Variation: 5,
-			Direction: "both",
-			StdDev:    -1,
+			Variation: variation,
+			Direction: direction,
+			StdDev:    stdDev,
 		}),
 	}
 	rs.AddAction(action)

@@ -1,0 +1,124 @@
+{
+  "metrics": [
+    {
+      "name": "lakerunner_log_records_ingested",
+      "type": "sum",
+      "description": "ad7cb853 - 100% success, ~15k/sec",
+      "resourceAttributes": {
+        "organization_id": "ad7cb853-e267-4688-9b20-89e7d41fbd9c"
+      },
+      "variants": [
+        {
+          "attributes": { "has_error": false },
+          "noise": { "variation": 750 },
+          "timeline": [
+            { "end_ts": "8760h", "start": 15000, "target": 15000 }
+          ]
+        },
+        {
+          "attributes": { "has_error": true },
+          "noise": { "variation": 15, "direction": "positive" },
+          "timeline": [
+            { "end_ts": "8760h", "start": 0, "target": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lakerunner_log_records_ingested",
+      "type": "sum",
+      "description": "165d8135 - 100% success, ~250k/sec",
+      "resourceAttributes": {
+        "organization_id": "165d8135-b651-4e36-aa7e-6b46221c2c05"
+      },
+      "variants": [
+        {
+          "attributes": { "has_error": false },
+          "noise": { "variation": 12500 },
+          "timeline": [
+            { "end_ts": "8760h", "start": 250000, "target": 250000 }
+          ]
+        },
+        {
+          "attributes": { "has_error": true },
+          "noise": { "variation": 50, "direction": "positive" },
+          "timeline": [
+            { "end_ts": "8760h", "start": 0, "target": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lakerunner_log_records_ingested",
+      "type": "sum",
+      "description": "39015e97 - 99% success, ~45k/sec",
+      "resourceAttributes": {
+        "organization_id": "39015e97-45f3-4525-9f96-ee9a5d4cb4e0"
+      },
+      "variants": [
+        {
+          "attributes": { "has_error": false },
+          "noise": { "variation": 2228 },
+          "timeline": [
+            { "end_ts": "8760h", "start": 44550, "target": 44550 }
+          ]
+        },
+        {
+          "attributes": { "has_error": true },
+          "noise": { "variation": 23 },
+          "timeline": [
+            { "end_ts": "8760h", "start": 450, "target": 450 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lakerunner_log_records_ingested",
+      "type": "sum",
+      "description": "bce07178 - 100% success, ~5k/sec",
+      "resourceAttributes": {
+        "organization_id": "bce07178-a91d-4ee6-8199-2981083aea52"
+      },
+      "variants": [
+        {
+          "attributes": { "has_error": false },
+          "noise": { "variation": 250 },
+          "timeline": [
+            { "end_ts": "8760h", "start": 5000, "target": 5000 }
+          ]
+        },
+        {
+          "attributes": { "has_error": true },
+          "noise": { "variation": 5, "direction": "positive" },
+          "timeline": [
+            { "end_ts": "8760h", "start": 0, "target": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lakerunner_log_records_ingested",
+      "type": "sum",
+      "description": "c4375e34 - 100% success, ~75k/sec",
+      "resourceAttributes": {
+        "organization_id": "c4375e34-dfcf-498a-8ba3-a02d119baf82"
+      },
+      "variants": [
+        {
+          "attributes": { "has_error": false },
+          "noise": { "variation": 3750 },
+          "timeline": [
+            { "end_ts": "8760h", "start": 75000, "target": 75000 }
+          ]
+        },
+        {
+          "attributes": { "has_error": true },
+          "noise": { "variation": 25, "direction": "positive" },
+          "timeline": [
+            { "end_ts": "8760h", "start": 0, "target": 0 }
+          ]
+        }
+      ]
+    }
+  ]
+}
