@@ -21,8 +21,7 @@ env:
 
 jobs:
   build-and-push:
-    runs-on:
-      group: larger-runners
+    runs-on: chq-basement-linux-amd64
 
     permissions:
       id-token: write
