@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine:latest AS certs
+FROM --platform=$BUILDPLATFORM alpine:latest AS certs
 RUN apk --update add ca-certificates
 
 # pull in geoip database
