@@ -21,7 +21,7 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: chq-basement-linux-amd64
+    runs-on: ubuntu-latest
 
     permissions:
       id-token: write
@@ -31,8 +31,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y make gcc
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Go
         uses: actions/setup-go@v5
