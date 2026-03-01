@@ -75,9 +75,13 @@ jobs:
           aws-region: ${{ secrets.ECR_REGISTRY_REGION }}
           role-session-name: GitHubActions
 
-      - name: Authenticate Docker to AWS ECR
-        id: login-ecr
+      - name: Authenticate Docker to AWS ECR (private)
         uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Authenticate Docker to AWS ECR (public)
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
 
       - name: Run tests
         run: make test
