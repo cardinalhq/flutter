@@ -28,21 +28,25 @@ go test -race -run TestName ./pkg/generator/
 
 **CLI Layer** (`cmd/flutter/`, `commands/`): Cobra-based CLI. Main command is `flutter simulate` which takes `-c` config files and `-t` timeline files.
 
-**Core Simulation Flow**: Config → Script → ScriptActions (timed events) → Generators produce values → Producers format as OTel metrics/traces → Emitters send output.
+**Core Simulation Flow**: Config → Script → ScriptActions (sorted by `At,Type,ID`) → 1-second tick loop → Generators produce values → Producers format as OTel metrics/traces → Emitters fan out.
+
+The tick loop in `script.run()` advances by 1 second per iteration: applies any actions whose `At <= tick`, calls `emitMetrics` then `emitTraces`, then sleeps 1s (unless dryrun). Actions are consumed sequentially from a pre-sorted slice.
+
+**Factory Pattern**: No central registry. Both `generator.CreateMetricGenerator` and `metricproducer.CreateMetricExporter` use a `switch` on `spec["type"]` from `map[string]any`. To add a new generator or producer type, add a case to the relevant switch.
 
 **Key Interfaces** (all in `pkg/`):
-- **MetricGenerator** (`generator/`): Value generators — Constant, Ramp, RandomWalk, GaussianNoise, SpikyNoise
-- **MetricProducer** (`metricproducer/`): Formats metrics — Gauge, Sum
-- **TraceProducer** (`traceproducer/`): Generates spans/traces
-- **Emitter** (`emitter/`): Output destinations — OTLP, JSON, Debug, Ticker
+- **MetricGenerator** (`generator/`): Value generators — Constant, Ramp, RandomWalk, GaussianNoise, SpikyNoise. Generators are composable: each `Emit` takes the previous generator's output as `initial`, allowing chaining (e.g. ramp + noise).
+- **MetricProducer** (`metricproducer/`): Formats metrics — Gauge, Sum. Has frequency throttling (`ShouldEmit`) and can be enabled/disabled mid-simulation.
+- **TraceProducer** (`traceproducer/`): Uses an exemplar span tree + rate model (not generators). Rate interpolates linearly over `[At, To]` windows with ~10% jitter.
+- **Emitter** (`emitter/`): Output destinations — OTLP (HTTP/proto, not gRPC), JSON, Debug, Ticker. All emitters receive every tick's data.
+
+**Timeline** (`timeline/`): A higher-level declarative DSL that compiles down to ScriptActions via `Timeline.MergeIntoScript()`. Auto-generates IDs (xxhash), noise generators, and sequential ramp generators from human-readable segment definitions. Supports `--from` for historical backfill (skip emitting until a tick offset).
 
 **Supporting Packages**:
 - `config/` — YAML config loading, custom `Duration` type
-- `script/` — Orchestration, manages generators/producers/emitters, runs simulation loop
 - `state/` — `RunState` carries tick, wallclock, seed-based RNG (`math/rand/v2` PCG) per step
-- `scriptaction/` — Timed action definitions (at, to, type, spec)
+- `scriptaction/` — `ScriptAction` struct: the universal carrier with `{ID, At, To, Type, Spec}`
 - `brokenwing/` — Custom error types
-- `timeline/` — Timeline file parsing
 
 ## Conventions
 
@@ -52,3 +56,4 @@ go test -race -run TestName ./pkg/generator/
 - Table-driven tests with `testify/assert`
 - Docker: Alpine-based, non-root (UID 2000), port 8080
 - CI publishes to `public.ecr.aws/cardinalhq.io/flutter`
+- Go tools (`license-eye`, `golangci-lint`, `goreleaser`) are managed via `//tool` directives in `go.mod`
