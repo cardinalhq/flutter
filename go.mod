@@ -35,9 +35,3 @@ require (
 	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
-//tool github.com/apache/skywalking-eyes/cmd/license-eye
-
-//tool github.com/golangci/golangci-lint/cmd/golangci-lint
-
-//tool github.com/goreleaser/goreleaser/v2

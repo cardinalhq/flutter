@@ -37,7 +37,7 @@ type Metric struct {
 	Frequency          config.Duration `json:"frequency,omitempty"` // optional, defaults to DefaultFrequency (10s)
 	ResourceAttributes map[string]any  `json:"resourceAttributes"`
 	Variants           []Variant       `json:"variants"`
-	Description         string         `json:"description"`
+	Description        string          `json:"description"`
 }
 
 type NoiseConfig struct {
@@ -61,11 +61,11 @@ type Segment struct {
 }
 
 type Trace struct {
-	Ref      string             `json:"ref"`
-	Name     string             `json:"name"`
-	Exemplar traceproducer.Span `json:"exemplar"`
-	Variants []TraceVariant     `json:"variants"`
-	Description         string         `json:"description"`
+	Ref         string             `json:"ref"`
+	Name        string             `json:"name"`
+	Exemplar    traceproducer.Span `json:"exemplar"`
+	Variants    []TraceVariant     `json:"variants"`
+	Description string             `json:"description"`
 }
 
 type TraceVariant struct {

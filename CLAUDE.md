@@ -56,4 +56,4 @@ The tick loop in `script.run()` advances by 1 second per iteration: applies any 
 - Table-driven tests with `testify/assert`
 - Docker: Alpine-based, non-root (UID 2000), port 8080
 - CI publishes to `public.ecr.aws/cardinalhq.io/flutter`
-- Go tools (`license-eye`, `golangci-lint`, `goreleaser`) are managed via `//tool` directives in `go.mod`
+- Dev tools (`golangci-lint`, `license-eye`) are installed to `./bin/` via `scripts/install-dev-tools.sh`, triggered lazily by Makefile prerequisites

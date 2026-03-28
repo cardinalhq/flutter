@@ -53,11 +53,14 @@ generate: ${all_deps}
 #
 check: test license-check lint
 
-license-check:
-	go tool license-eye header check
+license-check: bin/license-eye
+	./bin/license-eye header check
 
-lint:
-	go tool golangci-lint run --timeout 15m --config .golangci.yaml
+lint: bin/golangci-lint
+	./bin/golangci-lint run --timeout 15m --config .golangci.yaml
+
+bin/golangci-lint bin/license-eye:
+	./scripts/install-dev-tools.sh
 
 #
 # Build locally, mostly for development speed.
