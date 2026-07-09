@@ -1,6 +1,6 @@
 module github.com/cardinalhq/flutter
 
-go 1.26
+go 1.26.5
 
 require (
 	github.com/cardinalhq/oteltools v0.32.2
